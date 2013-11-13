@@ -1,0 +1,715 @@
+<!--http://arstechnica.com/information-technology/2013/05/native-level-performance-on-the-web-a-brief-examination-of-asm-js/
+--> <!DOCTYPE html>
+<!--[if lt IE 7]> <html lang="en-us" class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>    <html lang="en-us" class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>    <html lang="en-us" class="no-js ie8 lt-ie9"> <![endif]-->
+<!--[if IE 9]>    <html lang="en-us" class="no-js ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html lang="en-us"> <!--<![endif]-->
+<head>
+<title>Surprise! Mozilla can produce near-native performance on the Web | Ars Technica</title>
+  <script type="text/javascript">
+    ars = {"ASSETS":"\/\/cdn.arstechnica.net\/wp-content\/themes\/arstechnica\/assets","HOME":"http:\/\/arstechnica.com","CIVIS":"\/civis","THEME":"light","VIEW":"grid","MOBILE":false,"PREMIER":false,"AD":{"kw":"kw=programming;kw=100k_pvs;kw=int;","kw_arr":["programming","100k_pvs","int"],"zone":"int","empty":"\/wp-content\/themes\/arstechnica\/assets\/html\/empty.html","loader":"\/wp-content\/themes\/arstechnica\/assets\/html\/ad-loader-frame.html"},"TOTAL":57467,"UNREAD":0,"RECENT":[272501,272393,271007,272299,272335,272195,243085,272303,272143,272103,271989,271925,271845,271949,271939,271777,271871,271787,271795,271707,271655,271693,271641,271587,271537],"LOGINS":true,"COMMENTS":false};
+  </script>
+    <script type="text/javascript" charset="utf-8" src="//cdn.arstechnica.net/wp-content/themes/arstechnica/assets/js/ua-parser.min.js"></script>
+  <script type="text/javascript">
+    var ua = new UAParser();
+    var os = ua.getOS();
+    if (os.name == 'Windows' && parseFloat(os.version) >= 8) {
+      ars.AD.kw += 'kw=win_8';
+      ars.AD.kw_arr.push('win_8');
+    }
+  </script>
+    <!--[if lte IE 8]><script type="text/javascript" src="//cdn.arstechnica.net/wp-content/themes/arstechnica/assets/js/modernizr/modernizr.js"></script><![endif]-->
+
+    <link rel="stylesheet" type="text/css" media="all" href="//cdn.arstechnica.net/wp-content/themes/arstechnica/assets/css/ars.min.3b9288bf22e509d7d091c4934173bb7d.css" />
+  
+      <script type="text/javascript" src="//cdn.arstechnica.net/wp-content/themes/arstechnica/assets/js/ads.js?v=5"></script>
+  
+  <link rel="alternate" type="application/rss+xml" href="http://feeds.arstechnica.com/arstechnica/index/" />
+
+  <!-- Favicons, etc -->
+  <link rel="apple-touch-icon" href="http://static.arstechnica.net/apple-touch-icon.png" />
+  <link rel="shortcut icon" href="http://static.arstechnica.net/favicon.ico" />
+  <link rel="icon" type="image/x-icon" href="http://static.arstechnica.net/favicon.ico" />
+
+  <!-- C-razy IE9 stuff -->
+  <meta name="application-name" content="Ars Technica"/>
+  <meta name="msapplication-starturl" content="http://arstechnica.com/"/>
+  <meta name="msapplication-tooltip" content="Ars Technica: Serving the technologist for 1.2 decades"/>
+  <meta name="msapplication-task" content="name=News;action-uri=http://arstechnica.com/;icon-uri=http://arstechnica.com/favicon.ico"/>
+  <meta name="msapplication-task" content="name=Features;action-uri=http://arstechnica.com/features/;icon-uri=http://static.arstechnica.net/ie-jump-menu/jump-features.ico"/>
+  <meta name="msapplication-task" content="name=OpenForum;action-uri=http://arstechnica.com/civis/;icon-uri=http://static.arstechnica.net/ie-jump-menu/jump-forum.ico"/>
+  <meta name="msapplication-task" content="name=Subscribe;action-uri=http://arstechnica.com/subscriptions/;icon-uri=http://static.arstechnica.net/ie-jump-menu/jump-subscribe.ico"/>
+
+  <!-- Begin Metadata -->
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="advertising" content="ask" />
+  <meta property="fb:admins" content="13703630" />
+  <!-- End Metadata -->
+
+      <meta name="viewport" content="width=1020" />
+  
+    <!-- cache hit -->
+<meta name='parsely-page' content='{"title":"Surprise! Mozilla <i>can<\/i> produce near-native performance on the Web","link":"http:\/\/arstechnica.com\/information-technology\/2013\/05\/native-level-performance-on-the-web-a-brief-examination-of-asm-js\/","type":"post","author":"Peter Bright","post_id":"262063","pub_date":"2013-05-23T01:00:15Z","section":"Technology Lab","tags":["asm-js","java-2"],"image_url":"\/\/cdn.arstechnica.net\/wp-content\/uploads\/2013\/05\/hamster-powered-150x150.jpg"}'>
+<meta name='parsely-metadata' content='{"type":"feature","title":"Surprise! Mozilla <i>can<\/i> produce near-native performance on the Web","image_url":"\/\/cdn.arstechnica.net\/wp-content\/uploads\/2013\/05\/hamster-powered-150x150.jpg"}'>
+
+<link rel="canonical" href="http://arstechnica.com/information-technology/2013/05/native-level-performance-on-the-web-a-brief-examination-of-asm-js/" />
+
+<link rel="shorturl" href="http://ars.to/15uHnd1" />
+
+<meta name="description" content="We put Mozilla&#39;s JavaScript subset—asm.js—to the test." />
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:url" content="http://arstechnica.com/information-technology/2013/05/native-level-performance-on-the-web-a-brief-examination-of-asm-js/">
+<meta name="twitter:title" content="Surprise! Mozilla can produce near-native performance on the Web">
+<meta name="twitter:description" content="We put Mozilla&#39;s JavaScript subset—asm.js—to the test.">
+<meta name="twitter:site" content="@arstechnica">
+<meta name="twitter:image" content="//cdn.arstechnica.net/wp-content/uploads/2013/05/hamster-powered.jpg">
+<meta name="twitter:creator" content="@drpizza">
+
+<meta property="og:url" content="http://arstechnica.com/information-technology/2013/05/native-level-performance-on-the-web-a-brief-examination-of-asm-js/" />
+<meta property="og:title" content="Surprise! Mozilla can produce near-native performance on the Web" />
+<meta property="og:image" content="//cdn.arstechnica.net/wp-content/uploads/2013/05/hamster-powered.jpg" />
+<meta property="og:description" content="We put Mozilla&#39;s JavaScript subset—asm.js—to the test." />
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Ars Technica" />
+      <script type="text/javascript" src="//cdn.arstechnica.net/wp-content/themes/arstechnica/assets/js/omniture/mbox.js"></script>
+<!--
+	generated 6 seconds ago
+	generated in 0.093 seconds
+	served from batcache in 0.003 seconds
+	expires in 294 seconds
+-->
+</head>
+<body class="single single-post postid-262063 single-format-standard grid-view light">
+  <div id="container">
+    <header id="masthead">
+                      <aside id="ad-top">
+          <script type="text/javascript">ars.masthead_ad()</script>
+        </aside>
+                    <h1><a href="http://arstechnica.com"><em>Ars</em>Technica</a></h1>
+    </header>
+    <nav id="primary">
+      <ul>
+                <li id="home-icon">
+          <a href="/"><span>Home</span></a>
+        </li>
+        <li class="has-children">
+          <a href="#">Main Menu</a>
+           <div id="main-menu" class="dropdown">
+  <div id="sections">
+    <ul class="cat-list">
+      <li class="top-row even">
+        <a class="cat-link" href="/information-technology">
+          <span class="cat-name">Information Technology</span>
+          <span class="subheading cat-desc">Technology Lab</span>
+        </a>
+      </li>
+      <li class="top-row odd">
+        <a class="cat-link" href="/gadgets">
+          <span class="cat-name">Product News &amp; Reviews</span>
+          <span class="subheading cat-desc">Gear &amp; Gadgets</span>
+        </a>
+      </li>
+      <li class="even">
+        <a class="cat-link" href="/business">
+          <span class="cat-name">Business of Technology</span>
+          <span class="subheading cat-desc">Ministry of Innovation</span>
+        </a>
+      </li>
+      <li class="odd">
+        <a class="cat-link" href="/security">
+          <span class="cat-name">Security &amp; Hacktivism</span>
+          <span class="subheading cat-desc">Risk Assessment</span>
+        </a>
+      </li>
+      <li class="even">
+        <a class="cat-link" href="/tech-policy">
+          <span class="cat-name">Civilization &amp; Discontents</span>
+          <span class="subheading cat-desc">Law &amp; Disorder</span>
+        </a>
+      </li>
+      <li class="odd">
+        <a class="cat-link" href="/apple">
+          <span class="cat-name">The Apple Ecosystem</span>
+          <span class="subheading cat-desc">Infinite Loop</span>
+        </a>
+      </li>
+      <li class="even">
+        <a class="cat-link" href="/gaming">
+          <span class="cat-name">Gaming &amp; Entertainment</span>
+          <span class="subheading cat-desc">Opposable Thumbs</span>
+        </a>
+      </li>
+      <li class="odd">
+        <a class="cat-link" href="/science">
+          <span class="cat-name">Science &amp; Exploration</span>
+          <span class="subheading cat-desc">The Scientific Method</span>
+        </a>
+      </li>
+    </ul>
+    <div class="cat-feature">
+      <a class="cat-link" href="/feature-series/the-future-of-touch/">
+        <img src="//cdn.arstechnica.net/wp-content/themes/arstechnica/assets/images/feature-thumbs/touch-frs-icon.jpg" />
+        <span class="cat-name">Feature Series</span>
+        <span class="cat-desc subheading">The Past, Present, and Future of Touch</span>
+        <span class="cat-full-desc">How touch screens are changing how we interact</span>
+      </a>
+        </div>
+  </div>
+  <aside class="drop-extras">
+    <h2 class="subheading notched">Site Theme</h2>
+    <ul id="theme-switch">
+            <li class="light active">
+                <a href="http://arstechnica.com/information-technology/2013/05/native-level-performance-on-the-web-a-brief-examination-of-asm-js/?theme=light"><span class="subheading">Dark on light</span></a>
+              </li>
+      <li class="dark ">
+                <a href="http://arstechnica.com/information-technology/2013/05/native-level-performance-on-the-web-a-brief-examination-of-asm-js/?theme=dark"><span class="subheading">Light on dark</span></a>
+              </li>
+    </ul>
+    <div id="explore-ars">
+      <h2 class="subheading notched">Explore Ars</h2>
+      <ul>
+        <li><a href="/staff/">Staff Blogs</a></li>
+        <li><a href="/features/">Feature Archive</a></li>
+        <li><a href="/staff-directory/">Staff Directory</a></li>
+        <li><a href="http://arstechnica.com/contact-us/">Contact Us</a></li>
+      </ul>
+    </div>
+    <div id="featured-disciplines">
+      <h2 class="subheading notched">Featured Disciplines</h2>
+      <ul>
+        <li><a href="/discipline/photography/">Photography</a></li>
+        <li><a href="/discipline/productivity/">Productivity</a></li>
+        <li><a href="/discipline/cloud-2/">Cloud</a></li>
+        <li><a href="/discipline/gadgets-3/">Gadgets</a></li>
+        <li><a href="/discipline/tablets-2/">Tablets</a></li>
+      </ul>
+    </div>
+  </aside>
+</div>
+        </li>
+        <li class="has-children" id="my-stories">
+          <a href="#">My Stories: <span class="unread-count">0</span></a>
+          <div class="dropdown">
+            <nav class="my-stories-nav first">
+              <h2 class="subheading notched">New Since Last Visit <span class="unread-count"></span></h2>
+              <ol class="new-stories with-numbers"></ol>
+              <footer><a class="subheading" href="#" id="more-unread-stories">See more news stories</a></footer>
+            </nav>
+            <nav class="my-stories-nav middle">
+              <h2 class="subheading notched">We Recommend</h2>
+              <ol class="recommendations"></ol>
+            </nav>
+            <nav class="my-stories-nav">
+              <h2 class="subheading notched">My Discussions</h2>
+                            <p class="discussions disabled">Log in to track your discussions.</p>
+                          </nav>
+          </div>
+        </li>
+                <li class="no-children"><a href="/civis/">Forums</a></li>
+                <li class="no-children subscribe">
+          <a href="/subscriptions/">Subscribe</a>
+        </li>
+                        <li class="no-children"><a href="/video/">Video</a></li>
+                        <li class="right">
+          <a id="login" href="/civis/ucp.php?mode=login&return_to=http%3A%2F%2Farstechnica.com%2Finformation-technology%2F2013%2F05%2Fnative-level-performance-on-the-web-a-brief-examination-of-asm-js%2F" rel="nofollow">Log In</a>
+        </li>
+                        <li id="search-container" class="right inactive">
+          <a id="search-switch" href="/search/">Search</a>
+          <form action="/search/" method="GET">
+            <input type="text" name="query" id="hdr_search_input" value="">
+            <input type="submit" value="Search">
+          </form>
+        </li>
+              </ul>
+    </nav>
+
+
+    <section id="content" class="clearfix">
+
+<script type="text/javascript">
+  ars.ARTICLE = {"url":"http:\/\/arstechnica.com\/information-technology\/2013\/05\/native-level-performance-on-the-web-a-brief-examination-of-asm-js\/","short_url":"http:\/\/ars.to\/15uHnd1","title":"Surprise! Mozilla can produce near-native performance on the Web","author":1169,"id":262063,"topic":1205939,"promoted":[24545727],"single_page":false,"comments":153,"fullwidth":false};
+</script>
+
+<h1 id="archive-head" class="subheading thick-divide-bottom">
+	<a href="http://arstechnica.com/information-technology/">	<span class="archive-name">Technology Lab</span>
+		<span class="divider"> / </span>
+	<span class="archive-desc">Information Technology</span>
+		</a></h1>
+
+<article class="standalone">
+	<header>
+		<h1 class="heading">Surprise! Mozilla <i>can</i> produce near-native performance on the Web</h1>
+		<h2 class="standalone-deck">We put Mozilla's JavaScript subset—asm.js—to the test.</h2>
+		<div class="post-meta">
+			  <p class="byline">
+  by <a href="http://arstechnica.com/author/peter-bright/" rel="author" author="peter bright">Peter Bright</a>
+  -  <span class="date" data-time="1369270815">May 23, 2013 1:00 am UTC</span>
+  </p>
+
+			<div class="corner-info">
+				<ul class="tags subheading">
+									<li><a href="/discipline/development-2">Development</a></li>
+									<li><a href="/discipline/web-culture">Web Culture</a></li>
+								</ul>
+				  <a class="comment-count" href="http://arstechnica.com/information-technology/2013/05/native-level-performance-on-the-web-a-brief-examination-of-asm-js/?comments=1"><span>153</span></a>
+			</div>
+		</div>
+	</header>
+	<section id="article-guts">
+		<div class="article-content clearfix">
+    
+<figure class="intro-image image center full-width" style="width:640px">
+      <img src="//cdn.arstechnica.net/wp-content/uploads/2013/05/hamster-powered.jpg" width="640" height="360">
+  
+    <figcaption class="caption">
+	
+			<div class="caption-credit">
+							Aurich Lawson / Thinkstock				</div>
+	  </figcaption>
+  </figure>
+ <!-- cache hit --><!-- empty --> <p>In a bid to make JavaScript run ever faster, Mozilla has developed asm.js. It's a limited, stripped down subset of JavaScript that the company claims will offer performance that's within a factor of two of native—good enough to use the browser for almost <em>any</em> application. Can JavaScript really start to rival native code performance? We've been taking a closer look.</p>
+<h2>The quest for faster JavaScript</h2>
+<p>JavaScript performance became a big deal in 2008. Prior to this, the JavaScript engines found in common Web browsers tended to be pretty slow. These were good enough for the basic scripting that the Web used at the time, but it was largely inadequate for those wanting to use the Web as a rich application platform.</p>
+<p>In 2008, however, Google released Chrome with its V8 JavaScript engine. Around the same time, Apple brought out Safari 4 with its Nitro (née Squirrelfish Extreme) engine. These engines brought something new to the world of JavaScript: high performance achieved through just-in-time (JIT) compilation. V8 and Nitro would convert JavaScript into pieces of executable code that the CPU could run directly, improving performance by a factor of three or more.</p>
+<p>Mozilla and Microsoft followed suit. Mozilla introduced TraceMonkey in Firefox 3.5 in 2009 and Microsoft released Chakra in 2011.</p>
+<p>JIT compilation provided great scope for accelerating the performance of JavaScript programs, but it has its limits. The problem is JavaScript itself. The behavior of the language makes it hard to optimize. In languages such as C and C++, the behavior of a program is baked in when the program is compiled. Languages like Java and C# add a little more flexibility, but most of the time they share that same characteristic. The functions and data that make up a particular class are fixed when the program is compiled.</p>
+<p>This isn't true of JavaScript. In JavaScript, the way an object is meant to behave can change at more or less any time. A JIT engine could produce executable code to make an object behave one way, and then that object could be modified to invalidate the executable code. This means that the executable code has to be quite conservative to guard against this kind of modification. From time to time, bugs have cropped up that cause bad code to be generated.</p>
+<p>Browser developers are, therefore, in a frustrating position. They want scripting engines that are faster to enable the browser to be used for a wider range of applications, but their efforts to improve performance are hamstrung by JavaScript itself. The language simply isn't designed for high performance optimization.</p>
+<h2>Breaking the speed limit by changing the rules</h2>
+<p>This has all led to a number of efforts to change JavaScript itself. The first notable one is Google Dart. Google Dart is a scripting language that is aimed at the same kind of programs as JavaScript is currently used for, with syntax that is broadly familiar to JavaScript developers but <a href="http://arstechnica.com/business/2011/10/javascript-has-problems-can-googles-dart-solve-them/">without many of the traits</a> that make JavaScript difficult to optimize.</p>
+<p>Google's original ambition was to have Dart integrated into the browser, using a Dart-specific engine where available or translating to JavaScript when not. Google also developed <a href="http://www.dartlang.org/tools/dartium/">Dartium</a>, a fork of its Chromium browser (Chromium being the open-source counterpart to Chrome) that includes the Dart engine.</p>
+<p>As a practical matter, getting both Web and browser developers to embrace an all-new language with an all-new engine is an uphill struggle. JavaScript isn't going to go away any time soon, so adding additional languages simply increases the complexity of browsers and spreads development resources thinner.</p>
+<h2>asm.js</h2>
+<p>Mozilla proposed an alternative. Rather than using an entirely new language, Mozilla defines a strict subset of JavaScript that it calls <a href="http://asmjs.org/spec/latest/">asm.js</a>. The asm.js subset of JavaScript is very limited. It eschews, for example, JavaScript's object-oriented constructs. As a result, it also eschews many of JavaScript's hard-to-optimize dynamic capabilities.</p>
+<p>Instead of using objects and classes, asm.js programs manipulate a large array representing "memory" in a manner not entirely dissimilar to the way C and C++ programs manipulate system memory. This does not mean that concepts such as objects and classes cannot be used. It means instead that they must be implemented and used by asm.js programs in the same way that C++ compilers implement and use them. In a C++ program, an object in memory is typically represented by the memory address of the class's <em>v-table</em> (a table of all the functions belonging to the object's class) followed by the storage for the object's data. So too in asm.js: the memory array would contain, in consecutive elements, the array index of the v-table and then the object data.</p>
+<p>asm.js also contains special hints to indicate which data types are being used. In traditional JavaScript, numbers can behave more or less like integers, or more or less like floating point numbers. The behavior changes depending on the operations being performed. For example, JavaScript will let you perform bitwise operations on floating point numbers by coercing those numbers into integers first. This coercion happens automatically and implicitly, meaning that JIT compilers cannot safely assume that a number is of one type or the other. asm.js uses explicit indicators to specify whether numbers (and operations on those numbers) should use integer-like behavior or floating point-like.</p>
+<p>This representation is much lower level than that found in traditional JavaScript programs, but it comes with an important constraint: it's nonetheless <em>still JavaScript</em>. The big memory array uses (relatively recently introduced) JavaScript <a href="http://www.khronos.org/registry/typedarray/specs/latest/">Typed Arrays</a>. It was originally created for WebGL, but it became available in all modern browsers, including the WebGL-less Internet Explorer 10. The number type indicators similarly use JavaScript constructs. For example, to indicate that a number is an integer, asm.js uses "bitwise or with zero" (an operation that forces JavaScript to coerce to integer-like, but which does not change the number's value).</p>
+<p>The result is that, unlike Dart programs that need a Dart engine or explicit translation to JavaScript, asm.js programs already run in any browser. They're just JavaScript programs, albeit weird JavaScript programs that don't look like anything that a human would ever produce.</p>
+<h2>Fewer features mean better performance</h2>
+<p>Browsers that recognize and have explicit support for asm.js can, however, take advantage of this knowledge to perform better optimization. An engine that knows about asm.js also knows that asm.js programs are forbidden from using many JavaScript features. As a result, it can produce much more efficient code. Regular JavaScript JITs must have guards to detect this kind of dynamic behavior. asm.js JITs do not; asm.js forbids this kind of dynamic behavior, so the JITs do not need to handle it. This simpler model—no dynamic behavior, no memory allocation or deallocation, just a narrow set of well-defined integer and floating point operations—enables much greater optimization.</p>
+<p>The fact that asm.js doesn't look like JavaScript any human would produce might seem like a problem. Scant few developers of native code programs use assembler, and asm.js is even more feature-deprived than most real assembly languages. Mozilla doesn't really intend for developers to write asm.js programs directly, however. Instead, the idea is that compilers use asm.js as the target, with programs themselves written in some other language.</p>
+<p>That language is typically C or C++, and the compiler used to produce asm.js programs is another Mozilla project: Emscripten. Emscripten is a compiler based on the LLVM compiler infrastructure and the Clang C/C++ front-end. The Clang compiler reads C and C++ source code and produces an intermediate platform-independent assembler-like output called LLVM Intermediate Representation. LLVM optimizes the LLVM IR. LLVM IR is then fed into a backend code generator—the part that actually produces executable code. Traditionally, this code generator would emit x86 code. With Emscripten, it's used to produce JavaScript.</p>
+<p>Emscripten can be used in two modes. It can produce regular JavaScript and it can produce asm.js JavaScript. In both cases, the output would not be described as human-readable. Just as with asm.js, the regular JavaScript uses the basic concept of a big array to represent "memory" with operations performed on that array. It was the success of this approach that led to the development of asm.js: asm.js is a formalized set of rules for how this style of JavaScript should be written.</p>
+<p>So that's what asm.js <em>is</em>. The real question, however, is how fast does it go? We've built a number of common benchmarks using Emscripten to take a look.</p>
+      		</div>
+    <div class="article-expander">
+      <p><a href="http://arstechnica.com/information-technology/2013/05/native-level-performance-on-the-web-a-brief-examination-of-asm-js/">Expand full story</a></p>
+    </div>
+		<nav class="page-numbers subheading">Page: <span class="numbers">1 <a href="http://arstechnica.com/information-technology/2013/05/native-level-performance-on-the-web-a-brief-examination-of-asm-js/2">2</a> <a href="http://arstechnica.com/information-technology/2013/05/native-level-performance-on-the-web-a-brief-examination-of-asm-js/3">3</a> <a href="http://arstechnica.com/information-technology/2013/05/native-level-performance-on-the-web-a-brief-examination-of-asm-js/2"><span class="next">Next <span class="arrow">&rarr;</span></span></a></span></nav>	</section>
+
+  
+  <div id="article-footer-wrap">
+
+	<section id="comments-area">
+		
+		<a name="comments-bar"></a>
+		<div class="comments-bar">
+      <a class="subheading comments-read-link" href="http://arstechnica.com/information-technology/2013/05/native-level-performance-on-the-web-a-brief-examination-of-asm-js/?comments=1"><span class="text">Reader comments</span> <span class="comment-count"><span>153</span></span></a>
+		</div>
+        <div id="comments-container"></div><div id="comments-posting-container"></div>
+    	</section>
+	
+		<aside id="share-buttons" class="thin-divide-bottom "><ul></ul></aside>
+	
+    <!-- cache hit -->  	<section class="article-author clearfix-redux">
+    				<a href="/author/peter-bright"><img width="47" height="47" src="//cdn.arstechnica.net/wp-content/uploads/authors/Peter-Bright-sq.jpg"></a>
+    		    
+		<p><a href="/author/peter-bright" class="author-name" author="peter bright">Peter Bright</a>  / Peter is a Microsoft Contributor at Ars. He also covers programming and software development, Web technology and browsers, and security. He is based in London, UK. </p>
+				<a href="https://twitter.com/drpizza" class="twitter-follow-button" data-show-count="false">@drpizza</a>
+		<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+			</section>
+  
+  
+	<nav class="post-links thick-divide-top thin-divide-bottom clearfix-redux">
+		<div class="subheading older"><a href="http://arstechnica.com/tech-policy/2013/05/apple-levels-its-latest-patent-complaints-at-samsungs-galaxy-s4/" rel="prev"><span class="arrow">&larr;</span> Older Story</a></div>
+		<div class="subheading newer"><a href="http://arstechnica.com/tech-policy/2013/05/nyt-dumps-a-copyright-snowfall-on-startup-referencing-its-work/" rel="next">Newer Story <span class="arrow">&rarr;</span></a></div>	
+	</nav>
+
+		<footer id="article-footer">
+		<h2 class="subheading notched">You May Also Like</h2>
+		<ul id="recommendations" class="clearfix-redux"></ul>
+	</footer>
+	
+  </div>
+</article>
+
+<!-- cache hit -->
+<section id="article-sidebar" class="column-1 right">
+  
+  
+  
+    <aside class="side-ad thick-divide-bottom">
+    <script type="text/javascript">ars.sidebar_ad("top")</script>
+  </aside>
+  
+  <h2 id="recent-featured-title" class="subheading notched">Top Feature Story</h2>
+  <ul class="column">
+
+
+<li class="post" id="">
+	<article class="in-column">
+		<a href="http://arstechnica.com/science/2013/05/going-inside-the-machinery-and-machinations-of-working-in-science/" class="headline-image">
+						<img src="//cdn.arstechnica.net/wp-content/uploads/2013/04/chris-lee-lab-300x100.jpg" width="300" height="100">
+						<h2 class="page-count subheading">Feature Story (1 page)</h2>
+			<h1 class="heading">Going inside the machinery and machinations of working in science</h1>
+		</a>
+		<p class="excerpt">You get a degree, you get an academic job. Then what?</p>
+    	</article>
+</li>
+  <aside class="thick-divide-top">
+    <h2 class="subheading notched">Watch Ars Video</h2>
+	  <article class="in-column">
+      <div class="column-video" data-player="2196096102001" data-video="2402185160001" data-key="AQ~~,AAAAlDCBGhk~,VcmqiTAuekrwPweJ20LLt7jwm8LxmhCE">
+        <img src="http://brightcove.vo.llnwd.net/d21/unsecured/media/636468927001/636468927001_2402230156001_vs-519cfc69e4b07590688cdcc9-1592194024001.jpg?pubId=636468927001" width="300" height="169">
+        <div class="column-video-overlay"></div>
+      </div>
+      <a href="http://arstechnica.com/gaming/2013/05/video-watch-us-flail-in-front-of-the-xbox-ones-new-kinect/"><h1 class="heading videohead">Video: Watch us flail in front of the Xbox One&rsquo;s new Kinect</h1></a>
+		  <p class="excerpt">See the depth-sensing camera that will be hooked up to every new system.</p>
+    </article>
+  </aside>
+<li id="in-the-know">
+	<h2 class="subheading notched">Stay in the know with</h2>
+	<ul class="social clearfix">
+		<li class="fb">
+			<a href="https://www.facebook.com/arstechnica"></a>
+			<div class="social-pop">
+				<div class="social-pop-content">
+					<h2 class="subheading">Follow Ars on Facebook</h2>
+				</div>
+			</div>
+		</li>
+		<li class="twit">
+			<a href="https://twitter.com/arstechnica"></a>
+			<div class="social-pop">
+				<div class="social-pop-content">
+					<h2 class="subheading">Follow Ars on Twitter</h2>
+				</div>
+			</div>
+		</li>
+		<li class="gplus">
+			<a href="https://plus.google.com/+ArsTechnica/posts"></a>
+			<div class="social-pop">
+				<div class="social-pop-content">
+					<h2 class="subheading">Follow Ars on Google Plus</h2>
+				</div>
+			</div>
+		</li>
+		<li class="email">
+      <a href="http://arstechnica.us1.list-manage.com/subscribe?u=af7f013bad7e785d15aab736f&id=0adf3ee3d9"></a>
+			<div class="social-pop">
+				<div class="social-pop-content">
+					<h2 class="subheading">Sign Up for the Ars Newsletter</h2>
+					<p>Sign up for the Ars Technica Dispatch, which delivers links to the most popular articles, journals, and multimedia features via e-mail to your inbox every week.</p>
+          <form action="http://arstechnica.us1.list-manage2.com/subscribe/post?u=af7f013bad7e785d15aab736f&amp;id=0adf3ee3d9" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank" novalidate>
+            <label for="mce-EMAIL">Your email address:</label>
+            <input type="email" value="" name="EMAIL" class="email" id="mce-EMAIL" placeholder="email address" required>
+            <input type="submit" value="Subscribe" name="subscribe">
+          </form>
+					<footer>I understand and agree that registration on or use of this site constitutes agreement to its <a href="#">User Agreement</a> and <a href="#">Privacy Policy</a>.</footer>
+				</div>
+			</div>					
+		</li>
+		<li class="rss">
+			<a href="/rss-feeds/"></a>
+			<div class="social-pop">
+				<div class="social-pop-content">
+					<h2 class="subheading">Follow Ars with RSS</h2>
+					<ul>
+						<li><a href="http://feeds.arstechnica.com/arstechnica/index/">&gt; Main site RSS feed</a> (all content)</li>
+						<li><a href="http://arstechnica.com/rss-feeds/">&gt; View a list</a> of all our RSS feeds</li>
+					</ul>
+				</div>
+			</div>					
+		</li>
+		<li class="pod last">
+			<a href="/podcast/"></a>
+			<div class="social-pop">
+				<div class="social-pop-content">
+					<h2 class="subheading">The Ars Podcast</h2>
+					<p>It's the Ars Technicast! Listen to our staff discuss the issues of the day.</p>
+					<ul>
+						<li><a href="http://arstechnica.com/podcast/">&gt; View podcast archive</a></li>
+					</ul>
+				</div>
+			</div>					
+		</li>
+	</ul>
+</li>
+
+<h2 class="subheading notched">Latest News</h2>
+<ol class="rail latest-stories">
+      <li>
+    <a href="http://arstechnica.com/business/2013/05/report-google-considering-internet-balloons-to-connect-sub-saharan-africa/">
+              <h2>World wide apps</h2>
+        <h1 class="heading">Report: Google considering Internet balloons to connect sub-Saharan Africa</h1>
+          </a>
+  </li>
+    <li>
+    <a href="http://arstechnica.com/gaming/2013/05/bears-beets-battlestar-galactica-ars-visits-comicpalooza-2013/">
+                      <img src="//cdn.arstechnica.net/wp-content/uploads/2013/05/comicpalooza13-creeper-defeated-150x150.jpg" width="50" height="50">
+        <h1 class="heading">Bears, beets, <em>Battlestar Galactica</em>: Ars visits Comicpalooza 2013</h1>
+          </a>
+  </li>
+    <li>
+    <a href="http://arstechnica.com/apple/2013/05/seven-apps-ars-readers-use-to-chase-away-the-ios-default-app-blues/">
+                      <img src="//cdn.arstechnica.net/wp-content/uploads/2013/04/IMG_4271-copy-150x150.jpg" width="50" height="50">
+        <h1 class="heading">Seven apps Ars readers use to chase away the iOS default-app blues</h1>
+          </a>
+  </li>
+    <li>
+    <a href="http://arstechnica.com/gaming/2013/05/when-lightning-strikes-the-staff-ars-readers-react/">
+                      <img src="//cdn.arstechnica.net/wp-content/uploads/2013/05/5676890023_1517e59aef_z-150x150.jpg" width="50" height="50">
+        <h1 class="heading">When lightning strikes the staff: Ars readers react</h1>
+          </a>
+  </li>
+    <li>
+    <a href="http://arstechnica.com/information-technology/2013/05/why-arent-user-defined-operators-more-common/">
+                      <img src="//cdn.arstechnica.net/wp-content/uploads/2013/05/custom_operators-150x150.png" width="50" height="50">
+        <h1 class="heading">Why aren&rsquo;t user-defined operators more common?</h1>
+          </a>
+  </li>
+    <li>
+    <a href="http://arstechnica.com/apple/2013/05/hands-on-use-gmusic-on-ios-to-listen-to-google-play-music-all-access/">
+                      <img src="//cdn.arstechnica.net/wp-content/uploads/2013/05/gmusic-150x150.jpg" width="50" height="50">
+        <h1 class="heading">Hands-on: Use gMusic on iOS to listen to Google Play Music All Access</h1>
+          </a>
+  </li>
+  </ol>
+
+<li id="bottom-side-ad" class="thick-divide-top">
+  <aside class="side-ad">
+    <script type="text/javascript">ars.sidebar_ad("bottom")</script>
+  </aside>
+</li>
+<li id="bottom-side-ad" class="thick-divide-top thick-divide-bottom">
+  <aside class="side-ad">
+    <script type="text/javascript" language="JavaScript">
+      // <![CDATA[
+      google_ad_client = 'ca-conde_arstechnica';
+      google_ad_channel = 'ars_technica_standard_a';
+      google_language = 'en';
+      google_ad_width = '300';
+      google_ad_height = '250';
+      google_ad_type = 'text';
+      google_encoding = 'utf8';
+      google_safe = 'high';
+    	      google_adtest = 'off';
+    	      google_ad_format = '';
+      google_ad_section = 'default';
+      // ]]>
+    </script>
+    <script type="text/javascript" src="http://pagead2.googlesyndication.com/pagead/show_ads.js" language="JavaScript"></script>
+  </aside>
+</li>
+
+</ul>
+</section>
+
+		</section>
+          		<footer id="page-footer">
+			<nav id="footer-nav" class="clearfix">
+				<div class="nav-section">
+					<h2 class="subheading">Site Links</h2>
+					<ul>
+						<li><a href="/about-us/">About Us</a></li>
+						<li><a href="/advertise-with-us/">Advertise with us</a></li>
+						<li><a href="/contact-us/">Contact Us</a></li>
+						<li><a href="/reprints/">Reprints</a></li>
+					</ul>
+					
+					<h2 class="subheading">Subscriptions</h2>
+					<ul>
+						<li><a href="/subscriptions/">Subscribe to Ars</a></li>
+					</ul>
+				</div>
+				<div class="nav-section">
+					<h2 class="subheading">More Reading</h2>
+					<ul>
+						<li><a href="/rss-feeds/">RSS Feeds</a></li>
+						<li><a href="/newsletters/">Newsletters</a></li>
+					</ul>
+				</div>
+				<div class="nav-section">
+					<h2 class="subheading">Conde Nast Sites</h2>
+					<ul class="conde-nast-sites">
+						<li><a href="http://www.reddit.com/">Reddit</a></li>
+						<li><a href="http://www.wired.com/">Wired</a></li>
+						<li><a href="http://www.vanityfair.com/">Vanity Fair</a></li>
+						<li><a href="http://www.style.com/">Style</a></li>
+						<li><a href="http://www.details.com/">Details</a></li>
+					</ul>
+					<form method="get" action="#">
+						<select id="mag_list" name="mag_list" onchange="(this.options[this.selectedIndex].value) ? (window.location = this.options[this.selectedIndex].value) : null">
+							<option value="" selected="selected">Visit our sister sites</option>
+							<option value="">- - - - - - - - - - - - - -</option>
+							<option value="http://www.gq.com">GQ</option>
+							<option value="http://www.concierge.com">Concierge</option>
+							<option value="http://www.epicurious.com">Epicurious</option>
+							<option value="http://men.style.com">Men.Style.com</option>
+							<option value="http://www.style.com">Style.com</option>
+							<option value="http://www.wired.com">Wired.com</option>
+							<option value="http://www.lipstick.com">Lipstick.com</option>
+							<option value="http://www.nutritiondata.com">NutritionData</option>
+							<option value="http://www.allure.com">Allure</option>
+							<option value="http://www.architecturaldigest.com">Architectural Digest</option>
+							<option value="http://www.bonappetit.com">Bon App&eacute;tit</option>
+							<option value="http://www.brides.com">Brides</option>
+							<option value="http://www.portfolio.com">Cond&eacute; Nast Portfolio</option>
+							<option value="http://www.glamour.com">Glamour</option>
+							<option value="http://www.golfdigest.com">Golf Digest</option>
+							<option value="http://www.golfworld.com">Golf World</option>
+							<option value="http://www.luckymag.com">Lucky</option>
+							<option value="http://www.self.com">Self</option>
+							<option value="http://www.teenvogue.com">Teen Vogue</option>
+							<option value="http://www.newyorker.com">The New Yorker</option>
+							<option value="http://www.vanityfair.com">Vanity Fair</option>
+							<option value="http://www.wmagazine.com">W</option>
+						</select>
+					</form>
+					<form method="get" action="#">
+						<select size="1" id="sub_list" name="sub_list" onchange="(this.options[this.selectedIndex].value) ? (window.location = this.options[this.selectedIndex].value) : null">
+							<option value="" selected="selected">Subscribe to a magazine</option>
+							<option value="http://www.magazinestoresubscriptions.com?source=univdropdown">View All Titles</option>
+							<option value="">- - - - - - - - - - - - - -</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_Allure?source=SITEFOOTER">Allure</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_ArchitecturalDigest">Architectural Digest</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_BonAppetite?source=SITEFOOTER">Bon App&eacute;tit</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_Brides?source=SITEFOOTER">Brides</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_CondeNastPortfolio?source=SITEFOOTER">Cond&eacute; Nast Portfolio</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_CondeNastTraveler?source=SITEFOOTER">Cond&eacute; Nast Traveler</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_Details?source=SITEFOOTER">Details</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_ElegantBride?source=SITEFOOTER">Elegant Bride</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_Glamour?source=SITEFOOTER">Glamour</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_GolfDigest?source=SITEFOOTER">Golf Digest</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_GolfWorld?source=SITEFOOTER">Golf World</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_GQ?source=SITEFOOTER">GQ</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_Lucky?source=SITEFOOTER">Lucky</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_ModernBride?source=SITEFOOTER">Modern Bride</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_Self?source=SITEFOOTER">Self</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_TeenVogue?source=SITEFOOTER">Teen Vogue</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_NewYorker?source=SITEFOOTER">The New Yorker</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_VanityFair?source=SITEFOOTER">Vanity Fair</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_Vogue?source=SITEFOOTER">Vogue</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_W?source=SITEFOOTER">W</option>
+							<option value="https://www.magazinestoresubscriptions.com/webapp/wcs/stores/servlet/Subscriptions_Wired?source=SITEFOOTER">Wired</option>
+						</select>
+					</form>
+				</div>
+				<div class="nav-section" id="mobile-site">
+          <h2 class="subheading"><a href="http://arstechnica.com/information-technology/2013/05/native-level-performance-on-the-web-a-brief-examination-of-asm-js/?view=mobile">View Mobile Site</a></h2>
+				</div>
+			</nav>
+	    			<div id="copyright-terms">
+			© 2013 Condé Nast. All rights reserved<br>
+			Use of this Site constitutes acceptance of our <a href="http://www.condenast.com/privacy-policy" target="_blank">User Agreement</a> (effective 3/21/12) and <a href="http://www.condenast.com/privacy-policy#privacypolicy" target="_blank">Privacy Policy</a> (effective 3/21/12), and <a href="/amendment-to-conde-nast-user-agreement-privacy-policy/">Ars Technica Addendum (effective 5/17/2012)</a><br>
+			<a href="http://www.condenast.com/privacy-policy#privacypolicy-california" target="_blank">Your California Privacy Rights</a><br>
+			The material on this site may not be reproduced, distributed, transmitted, cached or otherwise used, except with the prior written permission of Condé Nast.<br><br>
+			<a href="http://www.condenast.com/privacy-policy#privacypolicy-optout" target="_blank">Ad Choices</a><img width="10" height="10" border="0" src="//cdn.arstechnica.net/wp-content/themes/arstechnica/assets/images/ad_choices_arrow.png">
+			</div> 
+
+		</footer>
+    	</div>
+
+            <div id="login-body">
+        <form id="login-form" action="https://arstechnica.com/civis/ucp.php?mode=login" method="post">
+          <div id="login-section">
+            <input type="hidden" name="sid" value="64eba0288563acaf55dfbef2268d03f6" />
+<input type="hidden" name="redirect" value="index.php" />
+
+            <input type="hidden" name="redirect" value="./ucp.php?mode=login&amp;autoredirect=1&amp;return_to=%2Fcivis%2F" />
+
+            <input type="hidden" name="return_to" value="/civis/" />
+      <h2 class="subheading notched login">Log In</h2>
+            <div class="section-body">
+        <div class="creds">
+        <label class="has-placeholder" for="username">Username or Email:</label>
+        <input onfocus="userfocus=true;return;" type="text" name="username" id="username" placeholder="Username or Email" />
+        <label class="has-placeholder" for="password">Password:</label>
+        <input onfocus="passfocus=true;return;" type="password" name="password" id="password"  placeholder="Password" />
+        </div>
+              <label id="remember-label"><input type="checkbox" name="autologin" id="autologin" /> Keep me logged in</label>
+        <input type="submit" value="Login" class="button" name="login" />
+              <div id="password-reset-link">
+                <a href="https://arstechnica.com/civis/ucp.php?mode=sendpassword">Forgot your password?</a>
+               | <a href="https://arstechnica.com/civis/ucp.php?mode=resend_act">Resend activation e-mail</a>
+              </div>
+
+        <div class="register-account">
+        <h2 class="subheading notched register">Register an Account</h2>
+        <p>Don't have an Ars account? It’s fast and easy to register for one.</p>
+        <input type="button" value="Sign Up" onclick="window.location.href='http://arstechnica.com/civis/./ucp.php?mode=register'">
+        </div>
+
+            </div>
+          </div>
+        </form>
+
+        <div id="register-section">
+          <h2>Need to register for a new account?</h2>
+          <div class="section-body">
+            <p>If you don't have an account yet it's free and easy.</p>
+            <a href="https://arstechnica.com/civis/ucp.php?mode=register" class="button">Register</a>
+          </div>
+        </div>
+
+      </div>
+  
+		<script type="text/javascript" src="//cdn.arstechnica.net/wp-content/themes/arstechnica/assets/js/ars.min.39835cf4be21fd9b4817fce5670558ee.js"></script>
+	
+  
+  <noscript><a href="http://www.omniture.com" title="Web Analytics"><img src="http://condenast.112.2o7.net/b/ss/condenet-dev/1/H.15.1--NS/0" height="1" width="1" border="0" alt="" /></a></noscript>
+
+  
+  
+    <!-- Google Analytics start -->
+	<script type="text/javascript">
+	var _gaq = _gaq || [];
+  _gaq.push(
+    ['_setAccount', 'UA-31997-1'],
+    ['_setCustomVar', 1, 'view', "grid"],
+    ['_setCustomVar', 2, 'theme', "light"],
+    ['_setCustomVar', 3, 'logged_in', "false"],
+    ['_setCustomVar', 4, 'show_comments', "false"],
+    ['_trackPageview']
+  );
+	(function() {
+	  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+	  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	})();
+	</script>
+  <!-- Google Analytics end -->
+
+  <!-- Parse.ly start -->
+	<script type="text/javascript">
+  (function(d) {
+    var site = "arstechnica.com",
+    b = d.body,
+    e = d.createElement("div");
+    e.innerHTML = '<span id="parsely-cfg" data-parsely-site="'+site+'"></span>';
+    e.id = "parsely-root";
+    e.style.display = "none";
+    b.appendChild(e);
+  })(document);
+
+  (function(s, p, d) {
+    var h=d.location.protocol, i=p+"-"+s,
+    e=d.getElementById(i), r=d.getElementById(p+"-root"),
+    u=h==="https:"?"d1z2jf7jlzjs58.cloudfront.net"
+      :"static."+p+".com";
+    if (e) return;
+    e = d.createElement(s); e.id = i; e.async = true;
+    e.src = h+"//"+u+"/p.js"; r.appendChild(e);
+  })("script", "parsely", document);
+	</script>
+  <!-- Parse.ly end -->
+
+
+  <!-- Lotame/Crwdcntrl -->
+  <script src="//tags.crwdcntrl.net/c/313/cc_af.js"></script>
+  
+  
+  </body>
+</html>

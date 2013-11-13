@@ -1,0 +1,913 @@
+<!--http://continuum.io/blog/numba_performance
+--> <!DOCTYPE HTML>
+<html>
+  <head>
+    <!-- Head -->
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<title>Accelerating Python Libraries with Numba (Part 2)</title>
+<meta name="description" content="Continuum Analytics provides software, training, and consulting for high performance computing and data visualization using Python.  "/>
+<meta name="keywords" content="python, big data, data exploration, data analysis, data visualization, high performance computing, consulting, training, anaconda, developer resources, open source" />
+<!--[if lt IE 9]><script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+<link href="/media/css/bootstrap.css" rel="stylesheet" type="text/css" />
+<link href="/media/css/custom.css" rel="stylesheet" type="text/css" />
+<link href="/media/css/blog_custom.css" rel="stylesheet" type="text/css" />
+<link href="/media/css/pygments.css" rel="stylesheet" type="text/css" />
+
+<link rel="shortcut icon" href="/media/img/favicon.ico"/>
+<link rel="apple-touch-icon" href="/media/img/apple-touch-icon.png"/>
+<link rel="apple-touch-icon" sizes="72x72" href="/media/img/apple-touch-icon-72x72.png" />
+<link rel="apple-touch-icon" sizes="114x114" href="/media/img/apple-touch-icon-114x114.png" /> 	
+<!-- end Head -->
+  <style>
+    .content, .content_center { background-image: none; background-color: #FFFFFF; }
+    .form_standard { background: url(/media/img/inner_form_background.png); }
+    .blog_title { margin-bottom: 20px; }
+    .blog_content { margin-bottom: 20px; }
+    p { margin-right: 20px; }
+  </style>
+  <!-- Google Analytics -->
+
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-27761864-1'],['_setDomainName', 'continuum.io']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+<!-- close Google Analytics -->
+  </head>
+<body>
+<!-- header -->
+  <!-- Header -->
+<header class="header">
+    <section class="header_all"></section>
+    <section class="header_left"></section>
+    <section class="header_right"></section>
+    <section class="container header_center">
+        <img src="/media/img/spacer.gif" alt="Continuum Analytics" width="300" height="100" border="0"  usemap="#spacerMap" id="spacer" style="float: left;"/>
+        <map name="spacerMap" id="spacerMap">
+          <area shape="rect" coords="0,0,300,100" href="http://www.continuum.io" target="" alt="Continuum Analytics" />
+        </map>
+        <div class="pull-right" style="margin-top: -5px;"><a href="http://store.continuum.io/cshop/viewcart" class="btn btn-disabled" style="padding-top: 5px;"><i class="icon_search icon-shopping-cart"></i>  View Your Cart</a></div>
+        <article class="tagline">Python Visualization and Data Exploration</article>
+        <nav class="navbar">
+            <section class="navbar-inner">
+                <section class="container">
+                    <ul class="nav">
+                        <li class="dropdown"><a href="/index.html" title="Continuum Analytics">Home</a></li>
+                        <li class="dropdown"><!-- Products -->
+                            <a class="dropdown-toggle" data-toggle="dropdown" data-target="#" >Products  <b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="https://store.continuum.io/cshop/products" title="Overview">Overview</a></li>
+                                <li><a href="http://store.continuum.io/cshop/anaconda" title="Anaconda">Anaconda</a></li>
+                                <li><a href="https://store.continuum.io/cshop/accelerate" title="Accelerate">Anaconda Accelerate</a></li>
+                                <li><a href="https://store.continuum.io/cshop/mkl-optimizations" title="MKL">MKL Optimizations</a></li>
+                                <li><a href="https://store.continuum.io/cshop/iopro" title="IOPro">IOPro</a></li>
+                                <li><a href="/wakari.html" title="Wakari">Wakari</a></li>
+                                <!--<li><a href="/downloads.html" title="Downloads">Downloads</a></li>-->
+                                <li><a href="/developer-resources.html" title="For Developers">Open Source</a></li>
+                                <li class="dropdown"><a href="http://docs.continuum.io" title="">Documentation</a></li>
+
+                            </ul>
+                        </li>
+                        <li class="dropdown"><!-- Services -->
+                            <a class="dropdown-toggle" data-toggle="dropdown" data-target="#" >Services  <b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li class="dropdown"><a href="/consulting.html" title="">Consulting</a></li>
+                                <li class="dropdown"><a href="/support.html" title="">Support</a></li>
+                            </ul>
+                        </li>
+                        <li class="dropdown"><!-- Training -->
+                            <a class="dropdown-toggle" data-toggle="dropdown" data-target="#" >Training  <b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li class="dropdown"><a href="https://store.continuum.io/cshop/training" title="Overview">Overview</a></li>
+                                <li class="dropdown"><a href="https://store.continuum.io/cshop/practical python programming" title="Practical Python Programming">Practical Python Programming</a></li>
+                                <li class="dropdown"><a href="https://store.continuum.io/cshop/python for finance" title="Python for Finance">Python for Finance</a></li>
+                                <li class="dropdown"><a href="https://store.continuum.io/cshop/python for science" title="Python for Science">Python for Science</a></li>
+                                <li class="dropdown"><a href="https://store.continuum.io/cshop/course-philosophy" title="Course Philosophy">Course Philosophy</a></li>
+                                <li class="dropdown"><a href="https://store.continuum.io/cshop/course-trainer-bios" title="Trainer Bios">Trainer Bios</a></li>
+                                <!--<li class="dropdown"><a href="/custom-training.html" title="">Custom-Python-Courses</a></li>-->
+                                <!--<li class="dropdown"><a href="/pydata-academy.html" title="">PyData Academy</a></li>-->
+                                <!-- <li class="dropdown"><a href="/calendar.html" title="Calendar">Calendar</a></li> -->
+                            </ul>
+                        </li>
+                        <!--<li class="dropdown">
+                            <a data-target="#"  title="Training" class="dropdown-toggle" data-toggle="dropdown">Training&nbsp; <b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="/training.html" title="Course Descriptions">Courses</a></li>
+                                <li><a href="/training.html" title="Course Schedules">Calendar</a></li>
+                            </ul>
+                        </li>-->
+                      <li class="dropdown"><a data-target="#"  title="Company" class="dropdown-toggle" data-toggle="dropdown">Company  <b class="caret"></b></a>
+                            <ul class="dropdown-menu"><!-- Company -->
+                                <li><a href="/about-continuum.html" title="About Continuum">About Us</a></li>
+                                <li><a href="/our-team.html" title="Team">Our Team</a></li>
+                                <li><a href="/careers.html" title="Careers">Careers</a></li>
+                                <li><a href="/blog">Blog</a></li>
+                                <li><a href="/press" title="News & Events">News & Events</a></li>
+                                <li><a href="/news.html" title="In the Press">In the Press</a></li>
+                                <li><a href="http://www.numfocus.org" title="NumFocus" target="_blank">NumFocus</a></li>
+                                <li><a href="/python-for-big-data.html" title="Python for Big Data">Python for Big Data</a></li>
+                                <li><a href="/selling-open-source.html" title="Open Source">Open Source</a></li> 
+                            </ul>
+                      </li>
+                      <li class="dropdown"><a href="/contact-us.html">Contact Us</a></li>
+                      <li class="dropdown"><!-- Contact US -->
+                        
+                          <div class="social_media_header"> 
+                              <a href="http://plus.google.com/108011804375544975017" title="Circle Continuum Analytics on Google+" target="_blank"><img src="/media/img/gplus_header.png" alt="Circle Continuum Analytics on Google+" width="33" height="33"></a>
+                              <a href="http://www.twitter.com/continuumio" title="Follow @continuumio on Twitter" target="_blank"><img src="/media/img/twitter_header.png" alt="Follow @continuumio on Twitter" width="33" height="33"></a>
+                              <a href="http://www.linkedin.com/company/continuum-analytics-inc-" title="Follow Continuum Analytics on LinkedIn" target="_blank"><img src="/media/img/linkedin_header.png" alt="Follow Continuum Analytics on LinkedIn" width="33" height="33"></a>
+                              <a href="http://www.facebook.com/ContinuumAnalytics" title="Like Continuum Analytics on Facebook" target="_blank"><img src="/media/img/facebook_header.png" alt="Like Continuum Analytics on Facebook" width="33" height="33"></a>
+                                <a  href="http://continuum.io/press/feed" title="Subscribe to Concintuum Analytics RSS Press Feed" target="_blank">
+                                    <img  id="prss" src="/media/img/rssds.png" alt="Subscribe to Concintuum Analytics RSS Press Feed" width="20" height="20"></a>
+                                <a href="http://continuum.io/blog/feed" title="Subscribe to Concintuum Analytics RSS Blog Feed" target="_blank">
+                                    <img id="brss" src="/media/img/rssds.png" alt="Subscribe to Concintuum Analytics RSS Blog Feed" width="20" height="20"></a>
+                            
+                          </div>
+                      </li>
+                    </ul>
+                </section>
+          </section>
+      </nav>
+    </section>
+</header>
+
+<!-- end Header -->
+<!-- /header -->
+<!-- Content -->
+  <div class="container"></div>
+  <section class="content">
+    <section class="container content_center">
+      <article class="container">
+        <section class="blog_content">
+          <section class="span8">
+            <div id="content" role="main">
+              <!-- Navigation -->
+<div id="nave-above" class="navigation">
+	<div class="nav-previous" style="float: left;">
+		<a class="next"
+			title="Wakari and Financial Health Checks"
+						href="/blog/wakari_financial_health_checks">
+			← Wakari and Financial Health Checks
+		</a>
+	</div>
+	<div class="nav-next" style="float: right;">
+		<a class="prev disabled"
+			title=""
+			>
+			 →
+		</a>
+	</div>
+</div>
+<br>
+<br>
+<!-- end navigation -->
+
+<!--div id="twitter_share">
+<a href="http://twitter.com/share"
+	class="twitter-share-button"
+	data-count="vertical"
+	data-via="">Tweet</a>
+	<script type="text/javascript"
+		src="http://platform.twitter.com/widgets.js"></script>
+</div>
+<div id="facebook_like">
+	<iframe src="http://www.facebook.com/plugins/like.php?href&amp;layout=box_count&amp;show_faces=false&amp;width=450&amp;action=like&amp;font=arial&amp;colorscheme=light&amp;height=65"
+			scrolling="no"
+			frameborder="0"
+			style="border:none; overflow:hidden; width:450px; height:65px;"
+			allowTransparency="true"></iframe>
+</div>
+<section class="span8">
+	<!-- gravatar -->
+	<div class='gravatar'>
+		<img alt="Aron Ahmadia" src="http://gravatar.com/avatar/821b8bf222958f83097ac40befc9edd7?s=128">
+	</div>
+	<!-- end gravatar -->
+	<h2>
+		<a href="/blog/numba_performance">
+			Accelerating Python Libraries with Numba (Part 2)
+		</a>
+	</h2>
+	<div class="entry-meta">
+		<span class="meta-prep meta-prep-author">Posted on</span>
+		
+		<time datetime="2013-05-23">
+			 <a href="/blog/numba_performance">
+			 <span class="entry-date">Thu, 23 May 2013</span>
+			 </a>
+		</time>
+		<span class="meta-sep">by</span>
+		<span class="author vcard">
+			<a class="url fn n" href="/author/aron" title="View all posts by Aron Ahmadia" author="aron ahmadia">Aron Ahmadia</a>
+	        		</span>
+	</div>
+	
+	<h2>Introduction</h2>
+<p>Welcome. This post is part of a series of <a href="http://continuum.io">Continuum
+Analytics</a> Open Notebooks showcasing our projects,
+products, and&nbsp;services.</p>
+<p><strong>In this <a href="https://www.wakari.io/sharing/bundle/aron/Accelerating_Python_Libraries_with_Numba_-_Part_2">Continuum Open Notebook</a>, you&#8217;ll learn more about how <a href="http://numba.pydata.org">Numba</a> works and
+how it reduces your programming effort, and see that it achieves comparable
+performance to C and Cython over a range of&nbsp;benchmarks.</strong></p>
+<p>If you are reading the blog form of this notebook, you can run the code yourself
+on our cloud-based Python-in-the-browser app, <a href="https://www.wakari.io">Wakari</a>.
+Wakari gives you a full Scientific Python stack, right from your browser, and
+allows you to write and share your own IPython Notebooks.  <a href="https://www.wakari.io">Sign up for free
+here</a>.</p>
+<h2>How Does Numba&nbsp;Work?</h2>
+<p><a href="http://numba.pydata.org">Numba</a> is a Continuum Analytics-sponsored
+<a href="http://continuum.io/developer-resources.html">open source project</a>. Numba&#8217;s job
+is to make Python + NumPy code as fast as its C and Fortran
+equivalents without sacrificing any of the power and flexibility of Python.
+Python can be slower than C and Fortran because it features a generic, dynamic
+object system.  If you were to look at the Python source code in C, you would
+see that every object, even simple integer constants, live in large, generic
+PyObject structures.  The Python interpreter has to unwind several layers of
+abstraction each time it operates on a generic object.  Let&#8217;s consider a simple
+statement to demonstrate this&nbsp;concept:</p>
+<p><code>c = a+b</code></p>
+<p>We&#8217;ll assume that <code>a</code> and <code>b</code> are both floating-point numbers.  Adding them
+together is a single instruction on any modern <span class="caps">CPU</span>.  This statement in C or
+Fortran will usually generate just this single floating-point add instruction at
+compile-time.  At run-time, dispatching this instruction will likely only
+require a single <span class="caps">CPU</span> cycle, and it will complete in less than five&nbsp;cycles.</p>
+<p>The same statement in Python will generate dozens of instructions.  Because <code>a</code>
+and <code>b</code> are dynamically typed, the interpreter must first determine the type of
+<code>a</code> and <code>b</code>, which will require lookups to memory of the <code>a</code> and <code>b</code> types.
+Then the interpreter has to determine if the type possesses the <code>add</code> method.  A
+new object, <code>c</code>, may need to be created.  The creation of <code>c</code> requires a memory
+allocation on the heap.  Finally, the floating-point add operation is called,
+and the result is stored in <code>c</code>.  The many additional function calls are
+responsible for the first order of magnitude of difference in performance
+between Python and compiled languages such as C and Fortran.  But it is the
+memory allocations and dereferencing that are responsible for the next several
+orders of magnitude of performance difference.  Python does not feature a native
+just-in-time compiler, so every time it sees this statement again (such as in a
+for loop), it has to repeat all the work it just&nbsp;did.</p>
+<p>Numba is our bridge between Python and performance.  Numba takes over for the
+Python interpreter on decorated functions and classes, and intelligently adds
+type information to as many objects as possible in an expression.  When Numba
+can&#8217;t figure out what type an object is, it falls back to the same expensive
+type queries the Python interpreter uses.  Numba then compiles the Python and
+NumPy functions and classes into performant code.  Numba can compile just-in-time
+with the <code>autojit</code> decorator, or ahead of time with the <code>jit</code> decorator.</p>
+<h2>Benchmarking</h2>
+<p>This notebook provides a benchmark comparison between Python, C interfaced
+through ctypes, Cython, and Numba - all from <a href="https://www.wakari.io/sharing/bundle/aron/Accelerating_Python_Libraries_with_Numba_-_Part_2">an IPython notebook in the cloud
+that you can run yourself</a>!
+The notebook is self-validating, with integrated
+tests checking the correctness of each kernel function before timing it.  We
+encourage you to experiment with the code, try out new ideas, or even improve
+the code performance or the benchmarks themselves.  Feel free to reuse any of
+this code for your own&nbsp;work.</p>
+<p>We will start with two variants of a vector sum benchmark, then look at the
+<a href="https://www.wakari.io/nb/aro
+n/Accelerating_Python_Libraries_with_Numba___Part_1">GrowCut benchmark introduced in the last notebook</a>.</p>
+<h3>Setup</h3>
+<p>We start by importing the libraries we need and defining a plotting function.
+We also install an IPython extension, cmagic, for compiling C code using the
+same compiler and flags that were used to build Python.  By default,
+we have hidden some of the longer code snippets.  Click on the title to
+view them&nbsp;inline.</p>
+<div class="accordion-group">
+  <div class="accordion-heading"><a class="accordion-toggle" href="#setup" data-toggle="collapse" data-parent="#accordion2">Setup code - Click on this bar to view</a></div>
+<div id="setup" class="accordion-body collapse">
+<div class="accordion-inner">
+
+    <div class="codebox"><figure class="code"><div class="highlight"><pre><span class="o">%</span><span class="n">pylab</span> <span class="n">inline</span><br />&nbsp;<br /><span class="c"># for compiling Cython inline</span><br /><span class="o">%</span><span class="n">load_ext</span> <span class="n">cythonmagic</span><br /><span class="c"># for compiling C code inline (you only need to install this once)</span><br /><span class="o">%</span><span class="n">install_ext</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">gist</span><span class="o">.</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">ahmadia</span><span class="o">/</span><span class="mi">5600293</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">f1bb89de5dfa1f2cc67201039b253949529e96a0</span><span class="o">/</span><span class="n">cmagic</span><span class="o">.</span><span class="n">py</span><br /><span class="o">%</span><span class="n">load_ext</span> <span class="n">cmagic</span><br />&nbsp;<br /><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span><br />&nbsp;<br /><span class="c"># Adjust the <span class="caps">SIZEX</span> and <span class="caps">SIZEY</span> variables here if you would</span><br /><span class="c"># like larger or smaller images.</span><br /><span class="n"><span class="caps">SIZEX</span></span><span class="p">,</span> <span class="n"><span class="caps">SIZEY</span></span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><br /><span class="n">plt</span><span class="o">.</span><span class="n">figsize</span><span class="p">(</span><span class="n"><span class="caps">SIZEX</span></span><span class="p">,</span> <span class="n"><span class="caps">SIZEY</span></span><span class="p">)</span><br />&nbsp;<br /><span class="kn">from</span> <span class="nn">timeit</span> <span class="kn">import</span> <span class="n">timeit</span><br /><span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">autojit</span><br /><span class="kn">import</span> <span class="nn">math</span><br /><span class="kn">import</span> <span class="nn">ctypes</span><br /><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span><br /><span class="kn">import</span> <span class="nn">numpy.testing</span> <span class="kn">as</span> <span class="nn">npt</span><br /><span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">ticker</span><br />&nbsp;<br /><br /><span class="k">def</span> <span class="nf">time_and_plot</span><span class="p">(</span><span class="n">algo</span><span class="p">,</span> <span class="n">Ns</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">func_names</span><span class="p">,</span> <span class="n">time_func</span><span class="p">,</span> <span class="n">xlabel</span><span class="p">,</span> <span class="n">ylabel</span><span class="p">,</span> <span class="n">yscale</span> <span class="o">=</span> <span class="s">&quot;linear&quot;</span><span class="p">,</span> <span class="n">yscaling</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span><br />    <span class="sd">&quot;&quot;&quot;Plot Timing Comparison</span><br />&nbsp;<br /><span class="sd">    Timing Parameters</span><br /><span class="sd">    -----------------</span><br /><span class="sd">    algo : str</span><br /><span class="sd">        Name of the algorithm being timed.  Example: &quot;Matrix-Matrix Multiply&quot;,</span><br /><span class="sd">    Ns : indexable, int</span><br /><span class="sd">        Size of arguments to be passed to timed functions.</span><br /><span class="sd">    dtype : numpy.dtype</span><br /><span class="sd">        Type of arguments to pass to timed functions.</span><br /><span class="sd">    func_names : str</span><br /><span class="sd">        Name of the functions in the __main__ namespace to be timed.</span><br /><span class="sd">    time_func : function</span><br /><span class="sd">        Timing function.  See time_func.</span><br />&nbsp;<br /><span class="sd">    Plot Parameters</span><br /><span class="sd">    ---------------</span><br /><span class="sd">    xlabel : str</span><br /><span class="sd">        See plt.xlabel.</span><br /><span class="sd">    ylabel  : str</span><br /><span class="sd">        See plt.ylabel.</span><br /><span class="sd">    yscale  : str, optional, defaults to &quot;linear&quot;</span><br /><span class="sd">        See plt.set_yscale.</span><br /><span class="sd">    yscaling : integer, optional, defaults to 1</span><br /><span class="sd">        Ratio to multiply y data values by.</span><br /><span class="sd">    &quot;&quot;&quot;</span><br />&nbsp;<br />    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">func_names</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">Ns</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span><br />    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">func_names</span><span class="p">)):</span><br />        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Ns</span><span class="p">)):</span><br />            <span class="n">data</span><span class="p">[</span><span class="n">k</span><span class="p">,</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_func</span><span class="p">(</span><span class="n">func_names</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">Ns</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">dtype</span><span class="p">)</span><br />&nbsp;<br />    <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span><br />    <span class="n">fig1</span><span class="p">,</span> <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span><br />    <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">fig1</span><span class="o">.</span><span class="n">get_size_inches</span><span class="p">()</span><br />    <span class="n">fig1</span><span class="o">.</span><span class="n">set_size_inches</span><span class="p">(</span><span class="n">w</span><span class="o">*</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span><br />    <span class="n">ax1</span><span class="o">.</span><span class="n">set_xscale</span><span class="p">(</span><span class="s">&quot;log&quot;</span><span class="p">)</span><br />    <span class="n">ax1</span><span class="o">.</span><span class="n">get_xaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_major_formatter</span><span class="p">(</span><span class="n">ticker</span><span class="o">.</span><span class="n">FormatStrFormatter</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">))</span><br />    <span class="n">ax1</span><span class="o">.</span><span class="n">get_xaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_minor_locator</span><span class="p">(</span><span class="n">ticker</span><span class="o">.</span><span class="n">NullLocator</span><span class="p">())</span><br />    <span class="n">ax1</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="n">yscale</span><span class="p">)</span><br />    <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">ax1</span><span class="o">.</span><span class="n">get_xticklabels</span><span class="p">(),</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span><br />    <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">ax1</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">(),</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span><br />&nbsp;<br />    <span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s">&quot;lightgrey&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s">&quot;--&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span><br />&nbsp;<br />    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="n">xlabel</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span><br />    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="n">ylabel</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span><br />    <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="n">Ns</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*.</span><span class="mi">9</span><span class="p">,</span> <span class="n">Ns</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mf">1.1</span><span class="p">)</span><br />    <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%s</span><span class="s"> Performance&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">algo</span><span class="p">),</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span><br />&nbsp;<br />    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">func_names</span><span class="p">)):</span><br />        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Ns</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="n">k</span><span class="p">,:]</span><span class="o">*</span><span class="n">yscaling</span><span class="p">,</span> <span class="s">&quot;o-&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">func_names</span><span class="p">[</span><span class="n">k</span><span class="p">])</span><br />        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s">&quot;upper right&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">18</span><span class="p">)</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+</div>
+
+<p></div>
+</div></p>
+<h2>For loop benchmark&nbsp;(Integer)</h2>
+<p>Our first benchmark is a simple loop calculating a vector sum over $N$ values.
+This is a native NumPy function, so we&#8217;ll define that&nbsp;first.</p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="k">def</span> <span class="nf">numpy_sum</span><span class="p">(</span><span class="n">y</span><span class="p">):</span><br />    <span class="k">return</span> <span class="n">y</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+<p>We have to write the same loop explicitly in&nbsp;Python.</p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="k">def</span> <span class="nf">python_sum</span><span class="p">(</span><span class="n">y</span><span class="p">):</span><br />    <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><br />    <span class="n">x</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><br />    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">N</span><span class="p">):</span><br />        <span class="n">x</span> <span class="o">+=</span> <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><br />    <span class="k">return</span> <span class="n">x</span><span class="s">&#39;</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+<p>Note that the Python code does not require us to specify what <code>y</code> is, beyond
+that it must be indexable.  Although the Python dynamic types are flexible,
+they are not&nbsp;performant.</p>
+<p>Next, we define the Numba&nbsp;code.</p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="n">numba_sum</span> <span class="o">=</span> <span class="n">autojit</span><span class="p">()(</span><span class="n">python_sum</span><span class="p">)</span><br /><span class="n">numba_sum</span><span class="o">.</span><span class="n">func_name</span> <span class="o">=</span> <span class="s">&quot;numba_sum&quot;</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+<p>With a single line of code, we create a high-performance but equally flexible
+version of <code>python_sum</code>.  When <code>numba_sum</code> is called with a numpy ndarray
+object, <code>numba_sum</code> will execute at the same speed as C or Cython.  Don&#8217;t
+believe me?  Let&#8217;s time&nbsp;it!</p>
+<p>Note: We set the <code>func_name</code> attribute to <code>numba_sum</code> to distinguish it from
+<code>python_sum</code>, the <code>func_name</code> inherited by&nbsp;default.</p>
+<p>Here&#8217;s the C code we will compare against.  See the notebook for
+details on how it is interfaced using magic&nbsp;functions.</p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="kt">int</span> <span class="nf">_c_int_sum</span><span class="p">(</span><span class="kt">int</span> <span class="n">N</span><span class="p">,</span> <span class="kt">int</span> <span class="o">*</span><span class="n">y</span><span class="p">)</span> <span class="p">{</span><br />    <span class="kt">int</span> <span class="n">i</span><span class="p">;</span><br />    <span class="kt">int</span> <span class="n">x</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span><br />    <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">N</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span><br />    <span class="p">{</span><br />        <span class="n">x</span> <span class="o">+=</span> <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">];</span><br />    <span class="p">}</span><br />    <span class="k">return</span> <span class="n">x</span><span class="p">;</span><br /></pre></div><br /><figcaption>C</figcaption></figure></div>
+
+<p>Notice that because C is statically typed, we have to state ahead of time what
+the contents of <code>y</code> are.</p>
+<p>Next up is&nbsp;Cython.</p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="c">#cython: boundscheck=False</span><br /><span class="c">#cython: nonecheck=False</span><br /><span class="c">#cython: wraparound=False</span><br />&nbsp;<br /><span class="k">def</span> <span class="nf">cython_int_sum</span><span class="p">(</span><span class="nb">int</span><span class="p">[:]</span> <span class="n">y</span><span class="p">):</span><br />    <span class="k">cdef</span> <span class="kt">int</span> <span class="nf">i</span><br />    <span class="k">cdef</span> <span class="kt">int</span> <span class="nf">N</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mf">0</span><span class="p">]</span><br />    <span class="k">cdef</span> <span class="kt">int</span> <span class="nf">x</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="mf">0</span><span class="p">]</span><br />    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mf">1</span><span class="p">,</span><span class="n">N</span><span class="p">):</span><br />        <span class="n">x</span> <span class="o">+=</span> <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><br />    <span class="k">return</span> <span class="n">x</span><br /></pre></div><br /><figcaption>Cython</figcaption></figure></div>
+
+<p><a href="http://cython.org/">Cython</a> is an optimising static compiler for Python.  This
+Cython code will generate a <a href="http://docs.python.org/2/extending/extending.html">Python extension
+module</a>. Note that the
+Cython language is neither C nor Python, but a creole constructed from the two
+languages.  Again, see the notebook for details on how this code is
+compiled and run using magic&nbsp;functions.</p>
+<h3>Correctly Measuring&nbsp;Performance</h3>
+<p>We will use the <code>timeit</code> module to handle our performance comparison.  <code>timeit</code>
+doesn&#8217;t have access to any of the variables in our namespace by default, so we
+attach and retrieve them from the <code>__main__</code> module.</p>
+<div class="accordion-group">
+  <div class="accordion-heading"><a class="accordion-toggle" href="#perf_1" data-toggle="collapse" data-parent="#accordion2">Performance measuring function</a></div>
+<div id="perf_1" class="accordion-body collapse">
+<div class="accordion-inner">
+
+    <div class="codebox"><figure class="code"><div class="highlight"><pre><span class="k">def</span> <span class="nf">time_sum_func</span><span class="p">(</span><span class="n">func_name</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">trials</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span><br />    <span class="sd">&quot;&quot;&quot;Timeit Helper Function (Simple One-D Functions)</span><br />&nbsp;<br /><span class="sd">    Parameters</span><br /><span class="sd">    ----------</span><br /><span class="sd">    func_name : str</span><br /><span class="sd">        Name of the function in the __main__ namespace to be timed.</span><br /><span class="sd">    N : int, optional, defaults to 10000</span><br /><span class="sd">        Size of np.ones array to construct and pass to function.</span><br /><span class="sd">    dtype : np.dtype</span><br /><span class="sd">        Type of array to construct and pass to function.</span><br /><span class="sd">    trials : int, optional, defaults to 100</span><br /><span class="sd">        This parameter is passed to timeit</span><br />&nbsp;<br /><span class="sd">    Returns</span><br /><span class="sd">    -------</span><br /><span class="sd">    func_time : float</span><br /><span class="sd">        Average execution time over all trials</span><br /><span class="sd">    &quot;&quot;&quot;</span><br />    <span class="kn">import</span> <span class="nn">__main__</span><br />    <span class="n">__main__</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">N</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span><br />    <span class="k">return</span> <span class="p">(</span><span class="n">timeit</span><span class="p">(</span><span class="n">stmt</span><span class="o">=</span><span class="s">&quot;func(__main__.y)&quot;&quot;,</span><br />                   <span class="n">setup</span><span class="o">=</span><span class="s">&quot;import __main__; from __main__ import </span><span class="si">%s</span><span class="s"> as func&quot;</span> <span class="o">%</span> <span class="n">func_name</span><span class="p">,</span><br />                   <span class="n">number</span><span class="o">=</span><span class="n">trials</span><span class="p">)</span><span class="o">/</span><span class="n">trials</span><span class="p">)</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+</div>
+
+<p></div>
+</div></p>
+<p>Here are the results of our first call to the timer for three of the&nbsp;benchmarks:</p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="k">print</span> <span class="s">&quot;Numba (first call) (ms): </span><span class="si">%g</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time_sum_func</span><span class="p">(</span><span class="s">&quot;numba_sum&quot;</span><span class="p">)</span><span class="o">*</span><span class="mf">1e3</span><span class="p">)</span><br /><span class="k">print</span> <span class="s">&quot;Cython             (ms): </span><span class="si">%g</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time_sum_func</span><span class="p">(</span><span class="s">&quot;cython_int_sum&quot;</span><span class="p">)</span><span class="o">*</span><span class="mf">1e3</span><span class="p">)</span><br /><span class="k">print</span> <span class="s">&quot;C                  (ms): </span><span class="si">%g</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time_sum_func</span><span class="p">(</span><span class="s">&quot;c_int_sum&quot;</span><span class="p">)</span><span class="o">*</span><span class="mf">1e3</span><span class="p">)</span><br />&nbsp;<br />    <span class="n">Numba</span> <span class="p">(</span><span class="n">first</span> <span class="n">call</span><span class="p">)</span> <span class="p">(</span><span class="n">ms</span><span class="p">):</span> <span class="mf">0.944879</span><br />    <span class="n">Cython</span>             <span class="p">(</span><span class="n">ms</span><span class="p">):</span> <span class="mf">0.00568867</span><br />    <span class="n">C</span>                  <span class="p">(</span><span class="n">ms</span><span class="p">):</span> <span class="mf">0.0138402</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+<p>The first time we run the Numba code, we notice that it is much slower than C or
+Cython.  This is a feature.  Remember that Numba is a just-in-time compiler;
+this means the code is not compiled until the very last moment before execution
+(thus the just in time).  If we re-run the Numba code a second&nbsp;time:</p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="k">print</span> <span class="s">&quot;Numba (subsequent) (ms): </span><span class="si">%g</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time_sum_func</span><span class="p">(</span><span class="s">&quot;numba_sum&quot;</span><span class="p">)</span><span class="o">*</span><span class="mf">1e3</span><span class="p">)</span><br /><span class="k">print</span> <span class="s">&quot;Cython             (ms): </span><span class="si">%g</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time_sum_func</span><span class="p">(</span><span class="s">&quot;cython_int_sum&quot;</span><span class="p">)</span><span class="o">*</span><span class="mf">1e3</span><span class="p">)</span><br /><span class="k">print</span> <span class="s">&quot;C                  (ms): </span><span class="si">%g</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time_sum_func</span><span class="p">(</span><span class="s">&quot;c_int_sum&quot;</span><span class="p">)</span><span class="o">*</span><span class="mf">1e3</span><span class="p">)</span><br />&nbsp;<br /><br />    <span class="n">Numba</span> <span class="p">(</span><span class="n">subsequent</span><span class="p">)</span> <span class="p">(</span><span class="n">ms</span><span class="p">):</span> <span class="mf">0.0144315</span><br />    <span class="n">Cython</span>             <span class="p">(</span><span class="n">ms</span><span class="p">):</span> <span class="mf">0.00579834</span><br />    <span class="n">C</span>                  <span class="p">(</span><span class="n">ms</span><span class="p">):</span> <span class="mf">0.0180197</span><span class="s">&#39;</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+<p>We see that execution time is consistently much faster.  Numba only pays the
+cost of compiling once for a given type of function arguments.  Numba caches the
+results of compilation between function calls and recognizes
+that numba_sum has been called with an integer array previously,
+saving a&nbsp;recompile!</p>
+<h3>Performance&nbsp;Comparison</h3>
+<p>Let&#8217;s see how NumPy, Python, Cython, Numba, and C actually stack&nbsp;up!</p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="n">Ns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><br /><span class="n">func_names</span> <span class="o">=</span> <span class="s">&quot;cython_int_sum&quot;</span><span class="p">,</span> <span class="s">&quot;numba_sum&quot;</span><span class="p">,</span> <span class="s">&quot;c_int_sum&quot;</span><span class="p">,</span> <span class="s">&quot;numpy_sum&quot;</span><span class="p">,</span> <span class="s">&quot;python_sum&quot;</span><br /><span class="n">time_and_plot</span><span class="p">(</span><span class="s">&quot;Simple Integer Sum&quot;</span><span class="p">,</span> <span class="n">Ns</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">func_names</span><span class="p">,</span><br /><span class="n">time_sum_func</span><span class="p">,</span> <span class="s">&quot;Array Size&quot;</span><span class="p">,</span> <span class="s">&quot;Time: ms&quot;</span><span class="p">,</span> <span class="n">yscale</span><span class="o">=</span><span class="s">&quot;log&quot;</span><span class="p">,</span> <span class="n">yscaling</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+<p><img alt="" src="/media/img/_fig_3401.png" /></p>
+<p>Whoa!  We&#8217;re not going to have time to run Python on big arrays, let&#8217;s drop it
+from the rest of the&nbsp;comparison.</p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="n">Ns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><br /><span class="n">func_names</span> <span class="o">=</span> <span class="s">&quot;cython_int_sum&quot;</span><span class="p">,</span> <span class="s">&quot;numba_sum&quot;</span><span class="p">,</span> <span class="s">&quot;c_int_sum&quot;</span><span class="p">,</span> <span class="s">&quot;numpy_sum&quot;</span><br /><span class="n">time_and_plot</span><span class="p">(</span><span class="s">&quot;Simple Integer Sum&quot;</span><span class="p">,</span> <span class="n">Ns</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">func_names</span><span class="p">,</span> <span class="n">time_sum_func</span><span class="p">,</span> <span class="s">&quot;Array Size&quot;</span><span class="p">,</span> <span class="s">&quot;Time: s&quot;</span><span class="p">,</span> <span class="n">yscale</span><span class="o">=</span><span class="s">&quot;log&quot;</span><span class="p">,</span> <span class="n">yscaling</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+<p><img alt="" src="/media/img/_fig_3601.png" /></p>
+<p>Cython and Numba both do very well for small arrays, although Numba eventually
+loses some performance for very large arrays.  Numba is not quite as fast as C
+or Cython for very large problems in this case, this will be addressed in an
+upcoming&nbsp;release.</p>
+<h2>For loop benchmark&nbsp;(Floating-Point)</h2>
+<p>This next benchmark demonstrates the true flexibility of Numba.  We don&#8217;t need
+to modify the Numba code <strong>at all</strong>, we simply pass an array of doubles this
+time instead of integers.  We have to write new functions with a different type
+for <code>y</code> in both the <code>C</code> and the <code>Cython</code> code.</p>
+<p>Whoa!  Whoa!  Easy with the pitchforks and torches!  I have delicate&nbsp;skin!</p>
+<p>Yes, we know that <strong>this</strong> problem could be solved by using typedefs and macros,
+or templates in C++.  But we would still need to have multiple functions, one
+for each possible case, and this would quickly explode combinatorially for
+combinations of multiple options.  Besides, the whole point of this exercise is
+to get performance while keeping the developer&#8217;s job as simple as&nbsp;possible.</p>
+<p>One of Python&#8217;s greatest attributes is its support for clean, generic functions.
+Numba really shines in supporting generic functions while providing performance
+through <code>autojit</code>.</p>
+<div class="accordion-group">
+  <div class="accordion-heading"><a class="accordion-toggle" href="#c_double_sum" data-toggle="collapse" data-parent="#accordion2">c_double_sum</a></div>
+<div id="c_double_sum" class="accordion-body collapse">
+<div class="accordion-inner">
+
+    <div class="codebox"><figure class="code"><div class="highlight"><pre><span class="kt">double</span> <span class="nf">_c_double_sum</span><span class="p">(</span><span class="kt">int</span> <span class="n">N</span><span class="p">,</span> <span class="kt">double</span> <span class="o">*</span><span class="n">y</span><span class="p">)</span> <span class="p">{</span><br />    <span class="kt">int</span> <span class="n">i</span><span class="p">;</span><br />    <span class="kt">double</span> <span class="n">x</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span><br />    <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">N</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span><br />    <span class="p">{</span><br />        <span class="n">x</span> <span class="o">+=</span> <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">];</span><br />    <span class="p">}</span><br />    <span class="k">return</span> <span class="n">x</span><span class="p">;</span><br /><span class="p">}</span><br /></pre></div><br /><figcaption>C</figcaption></figure></div>
+
+</div>
+
+<p></div>
+</div></p>
+<div class="accordion-group">
+  <div class="accordion-heading"><a class="accordion-toggle" href="#cython_double_sum" data-toggle="collapse" data-parent="#accordion2">cython_double_sum</a></div>
+<div id="cython_double_sum" class="accordion-body collapse">
+<div class="accordion-inner">
+
+    <div class="codebox"><figure class="code"><div class="highlight"><pre><span class="o">%%</span><span class="n">cython</span><br />&nbsp;<br /><span class="c">#cython: boundscheck=False</span><br /><span class="c">#cython: nonecheck=False</span><br /><span class="c">#cython: wraparound=False</span><br />&nbsp;<br /><span class="k">def</span> <span class="nf">cython_double_sum</span><span class="p">(</span><span class="n">double</span><span class="p">[:]</span> <span class="n">y</span><span class="p">):</span><br />    <span class="k">cdef</span> <span class="kt">int</span> <span class="nf">i</span><br />    <span class="k">cdef</span> <span class="kt">int</span> <span class="nf">N</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mf">0</span><span class="p">]</span><br />    <span class="k">cdef</span> <span class="kt">double</span> <span class="nf">x</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="mf">0</span><span class="p">]</span><br />    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mf">1</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span><br />        <span class="n">x</span> <span class="o">+=</span> <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><br />    <span class="k">return</span> <span class="n">x</span><br /></pre></div><br /><figcaption>Cython</figcaption></figure></div>
+
+</div>
+
+<p></div>
+</div></p>
+<h3>Performance&nbsp;Comparison</h3>
+<p>We measure the performance over a range of vector&nbsp;sizes.</p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="n">Ns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><br /><span class="n">func_names</span> <span class="o">=</span> <span class="s">&quot;cython_double_sum&quot;</span><span class="p">,</span> <span class="s">&quot;numba_sum&quot;</span><span class="p">,</span> <span class="s">&quot;c_double_sum&quot;</span><span class="p">,</span> <span class="s">&quot;numpy_sum&quot;</span><span class="p">,</span> <span class="s">&quot;python_sum&quot;</span><br /><span class="n">time_and_plot</span><span class="p">(</span><span class="s">&quot;Simple Floating-Point Sum&quot;</span><span class="p">,</span> <span class="n">Ns</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">func_names</span><span class="p">,</span><br />              <span class="n">time_sum_func</span><span class="p">,</span> <span class="s">&quot;Vector Size&quot;</span><span class="p">,</span> <span class="s">&quot;Time: ms&quot;</span><span class="p">,</span> <span class="n">yscale</span><span class="o">=</span><span class="s">&quot;log&quot;</span><span class="p">,</span><br />              <span class="n">yscaling</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+<p><img alt="" src="/media/img/_fig_4901.png" /></p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="n">Ns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><br /><span class="n">func_names</span> <span class="o">=</span> <span class="s">&quot;cython_double_sum&quot;</span><span class="p">,</span> <span class="s">&quot;numba_sum&quot;</span><span class="p">,</span> <span class="s">&quot;c_double_sum&quot;</span><span class="p">,</span> <span class="s">&quot;numpy_sum&quot;</span><br /><span class="n">time_and_plot</span><span class="p">(</span><span class="s">&quot;Simple Floating-Point Sum&quot;</span><span class="p">,</span> <span class="n">Ns</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">func_names</span><span class="p">,</span><br />              <span class="n">time_sum_func</span><span class="p">,</span> <span class="s">&quot;Vector Size&quot;</span><span class="p">,</span> <span class="s">&quot;Time: (s) Log-Scale&quot;</span><span class="p">,</span> <span class="n">yscale</span><span class="o">=</span><span class="s">&quot;log&quot;</span><span class="p">,</span> <span class="n">yscaling</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+<p><img alt="" src="/media/img/_fig_5001.png" /></p>
+<p>From a performance perspective, the different versions are behaving almost
+identically for large vectors.  Both Cython and Numba really shine for smaller
+array size, though, even over&nbsp;NumPy!</p>
+<h2>GrowCut&nbsp;benchmark</h2>
+<p>Artifical benchmarks always leave us with a minor sense of dissatisfaction,
+similar to the feeling we&#8217;re left with after eating hot dogs made out of that
+unidentifiable bright red meat.  Let&#8217;s go back to a real application kernel and
+consider the impacts of using Numba&nbsp;there.</p>
+<p>We revisit the GrowCut kernel introduced in <a href="https://www.wakari.io/nb/aron/Accelerating_Python_Libraries_with_Numba___Part_1">the prior entry in this series</a>.</p>
+<p>First we do a pure Python&nbsp;implementation.</p>
+<div class="accordion-group">
+  <div class="accordion-heading"><a class="accordion-toggle" href="#growcut_python" data-toggle="collapse" data-parent="#accordion2">Pure Python GrowCut</a></div>
+<div id="growcut_python" class="accordion-body collapse">
+<div class="accordion-inner">
+
+    <div class="codebox"><figure class="code"><div class="highlight"><pre><span class="k">def</span> <span class="nf">window_floor</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">radius</span><span class="p">):</span><br />    <span class="k">if</span> <span class="n">radius</span> <span class="o">&gt;</span> <span class="n">idx</span><span class="p">:</span><br />        <span class="k">return</span> <span class="mi">0</span><br />    <span class="k">else</span><span class="p">:</span><br />        <span class="k">return</span> <span class="n">idx</span> <span class="o">-</span> <span class="n">radius</span><br />&nbsp;<br /><br /><span class="k">def</span> <span class="nf">window_ceil</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">ceil</span><span class="p">,</span> <span class="n">radius</span><span class="p">):</span><br />    <span class="k">if</span> <span class="n">idx</span> <span class="o">+</span> <span class="n">radius</span> <span class="o">&gt;</span> <span class="n">ceil</span><span class="p">:</span><br />        <span class="k">return</span> <span class="n">ceil</span><br />    <span class="k">else</span><span class="p">:</span><br />        <span class="k">return</span> <span class="n">idx</span> <span class="o">+</span> <span class="n">radius</span><br />&nbsp;<br /><span class="k">def</span> <span class="nf">python_kernel</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">state_next</span><span class="p">,</span> <span class="n">window_radius</span><span class="p">):</span><br />    <span class="n">changes</span> <span class="o">=</span> <span class="mi">0</span><br />    <span class="n">sqrt_3</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span><br />&nbsp;<br />    <span class="n">height</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><br />    <span class="n">width</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><br />&nbsp;<br />    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">width</span><span class="p">):</span><br />        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">height</span><span class="p">):</span><br />&nbsp;<br />            <span class="n">winning_colony</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><br />            <span class="n">defense_strength</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><br />&nbsp;<br />            <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">window_floor</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">window_radius</span><span class="p">),</span><br />                             <span class="n">window_ceil</span><span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">window_radius</span><span class="p">)):</span><br />                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">window_floor</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">window_radius</span><span class="p">),</span><br />                                 <span class="n">window_ceil</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">window_radius</span><span class="p">)):</span><br />                    <span class="k">if</span> <span class="p">(</span><span class="n">ii</span> <span class="o">==</span> <span class="n">i</span> <span class="ow">and</span> <span class="n">jj</span> <span class="o">==</span> <span class="n">j</span><span class="p">):</span><br />                        <span class="k">continue</span><br />&nbsp;<br />                    <span class="n">d</span> <span class="o">=</span> <span class="n">image</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">image</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><br />                    <span class="n">s</span> <span class="o">=</span> <span class="n">d</span> <span class="o">*</span> <span class="n">d</span><br />                    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span><br />                        <span class="n">d</span> <span class="o">=</span> <span class="n">image</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">image</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span><br />                        <span class="n">s</span> <span class="o">+=</span> <span class="n">d</span> <span class="o">*</span> <span class="n">d</span><br />                    <span class="n">gval</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">/</span><span class="n">sqrt_3</span><br />&nbsp;<br />                    <span class="n">attack_strength</span> <span class="o">=</span> <span class="n">gval</span> <span class="o">*</span> <span class="n">state</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><br />&nbsp;<br />                    <span class="k">if</span> <span class="n">attack_strength</span> <span class="o">&gt;</span> <span class="n">defense_strength</span><span class="p">:</span><br />                        <span class="n">defense_strength</span> <span class="o">=</span> <span class="n">attack_strength</span><br />                        <span class="n">winning_colony</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><br />                        <span class="n">changes</span> <span class="o">+=</span> <span class="mi">1</span><br />&nbsp;<br />            <span class="n">state_next</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">winning_colony</span><br />            <span class="n">state_next</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">defense_strength</span><br />&nbsp;<br />    <span class="k">return</span> <span class="n">changes</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+</div>
+
+<p></div>
+</div></p>
+<p>Next, we autojit the pure Python kernels to create accelerated Numba&nbsp;variants.</p>
+<p>If we want maximum performance, we need to autojit the two functions used in
+iterating over the loop.  We could have removed the functions themselves, but
+they help improve the readability of the code.  Currently, <a href="https://github.com/numba/numba/issues/160">Numba does not
+support inlining</a> (Pull Requests
+welcome!), which makes it more challenging to put function calls in innermost
+loops&nbsp;performantly.</p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="n">window_ceil</span>  <span class="o">=</span> <span class="n">autojit</span><span class="p">()(</span><span class="n">window_ceil</span><span class="p">)</span><br /><span class="n">window_floor</span> <span class="o">=</span> <span class="n">autojit</span><span class="p">()(</span><span class="n">window_floor</span><span class="p">)</span><br /><span class="n">numba_kernel</span> <span class="o">=</span> <span class="n">autojit</span><span class="p">()(</span><span class="n">python_kernel</span><span class="p">)</span><br /><span class="n">numba_kernel</span><span class="o">.</span><span class="n">func_name</span> <span class="o">=</span> <span class="s">&quot;numba_kernel&quot;</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+<div class="accordion-group">
+  <div class="accordion-heading"><a class="accordion-toggle" href="#growcut_cython" data-toggle="collapse" data-parent="#accordion2">Cython GrowCut</a></div>
+<div id="growcut_cython" class="accordion-body collapse">
+<div class="accordion-inner">
+
+    <div class="codebox"><figure class="code"><div class="highlight"><pre><span class="o">%%</span><span class="n">cython</span><br />&nbsp;<br /><span class="c">#Note:  This code is not in the public domain.  This implementation of GrowCut</span><br /><span class="c">#is used under the terms of the <span class="caps">BSD</span> license, and is available from</span><br /><span class="c">#https://github.com/stefanv/growcut_py</span><br />&nbsp;<br /><span class="c">#cython: cdivision=True</span><br /><span class="c">#cython: boundscheck=False</span><br /><span class="c">#cython: nonecheck=False</span><br /><span class="c">#cython: wraparound=False</span><br />&nbsp;<br /><span class="k">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span><br />&nbsp;<br /><span class="k">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><br /><span class="k">cimport</span> <span class="nn">cython</span><br /><span class="k">cimport</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">cnp</span><br />&nbsp;<br /><span class="k">cdef</span> <span class="kr">extern</span> <span class="k">from</span> <span class="s">&quot;math.h&quot;</span> <span class="k">nogil</span><span class="p">:</span><br />    <span class="n">double</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">double</span><span class="p">)</span><br />&nbsp;<br /><br /><span class="k">cdef</span> <span class="kr">inline</span> <span class="kt">double</span> <span class="nf">distance</span><span class="p">(</span><span class="n">double</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span><span class="mf">1</span><span class="p">]</span> <span class="n">image</span><span class="p">,</span><br />                            <span class="n">Py_ssize_t</span> <span class="n">r0</span><span class="p">,</span> <span class="n">Py_ssize_t</span> <span class="n">c0</span><span class="p">,</span><br />                            <span class="n">Py_ssize_t</span> <span class="n">r1</span><span class="p">,</span> <span class="n">Py_ssize_t</span> <span class="n">c1</span><span class="p">)</span> <span class="k">nogil</span><span class="p">:</span><br />    <span class="n">cdef</span><span class="p">:</span><br />        <span class="n">double</span> <span class="n">s</span> <span class="o">=</span> <span class="mf">0</span><span class="p">,</span> <span class="n">d</span><br />        <span class="nb">int</span> <span class="n">i</span><br />&nbsp;<br />    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mf">3</span><span class="p">):</span><br />        <span class="n">d</span> <span class="o">=</span> <span class="n">image</span><span class="p">[</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">image</span><span class="p">[</span><span class="n">r1</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><br />        <span class="n">s</span> <span class="o">+=</span> <span class="n">d</span> <span class="o">*</span> <span class="n">d</span><br />&nbsp;<br />    <span class="k">return</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><br />&nbsp;<br /><br /><span class="k">cdef</span> <span class="kt">double</span> <span class="nf">s3</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="mf">3</span><span class="p">)</span><br />&nbsp;<br /><span class="k">cdef</span> <span class="kr">inline</span> <span class="kt">double</span> <span class="nf">g</span><span class="p">(</span><span class="n">double</span> <span class="n">d</span><span class="p">)</span> <span class="k">nogil</span><span class="p">:</span><br />    <span class="k">return</span> <span class="mf">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">d</span> <span class="o">/</span> <span class="n">s3</span><span class="p">)</span><br />&nbsp;<br /><span class="k">def</span> <span class="nf">cython_kernel</span><span class="p">(</span><span class="n">double</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span><span class="mf">1</span><span class="p">]</span> <span class="n">image</span><span class="p">,</span> <span class="n">double</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span><span class="mf">1</span><span class="p">]</span> <span class="n">state</span><span class="p">,</span> <span class="n">double</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span><span class="mf">1</span><span class="p">]</span> <span class="n">state_next</span><span class="p">,</span> <span class="n">Py_ssize_t</span> <span class="n">window_radius</span><span class="p">):</span><br />&nbsp;<br />    <span class="n">cdef</span><span class="p">:</span><br />        <span class="n">Py_ssize_t</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><br />        <span class="n">double</span> <span class="n">gc</span><span class="p">,</span> <span class="n">attack_strength</span><span class="p">,</span> <span class="n">defense_strength</span><span class="p">,</span> <span class="n">winning_colony</span><br />        <span class="nb">int</span> <span class="n">changes</span><br />&nbsp;<br />    <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mf">0</span><span class="p">],</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mf">1</span><span class="p">]</span><br />&nbsp;<br />    <span class="n">changes</span> <span class="o">=</span> <span class="mf">0</span><br />&nbsp;<br />    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">width</span><span class="p">):</span><br />        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">height</span><span class="p">):</span><br />&nbsp;<br />            <span class="n">winning_colony</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mf">0</span><span class="p">]</span><br />            <span class="n">defense_strength</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mf">1</span><span class="p">]</span><br />&nbsp;<br />            <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">0</span><span class="p">,</span> <span class="n">j</span> <span class="o">-</span> <span class="n">window_radius</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="n">window_radius</span> <span class="o">+</span> <span class="mf">1</span><span class="p">,</span> <span class="n">width</span><span class="p">)):</span><br />                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">0</span><span class="p">,</span> <span class="n">i</span> <span class="o">-</span> <span class="n">window_radius</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">window_radius</span> <span class="o">+</span> <span class="mf">1</span><span class="p">,</span> <span class="n">height</span><span class="p">)):</span><br />                    <span class="k">if</span> <span class="n">ii</span> <span class="o">==</span> <span class="n">i</span> <span class="ow">and</span> <span class="n">jj</span> <span class="o">==</span> <span class="n">j</span><span class="p">:</span><br />                        <span class="k">continue</span><br />&nbsp;<br />                    <span class="c"># p -&gt; current cell, (i, j)</span><br />                    <span class="c"># q -&gt; attacker, (ii, jj)</span><br />&nbsp;<br />                    <span class="n">gc</span> <span class="o">=</span> <span class="n">g</span><span class="p">(</span><span class="n">distance</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">))</span><br />&nbsp;<br />                    <span class="n">attack_strength</span> <span class="o">=</span> <span class="n">gc</span> <span class="o">*</span> <span class="n">state</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">,</span> <span class="mf">1</span><span class="p">]</span><br />&nbsp;<br />                    <span class="k">if</span> <span class="n">attack_strength</span> <span class="o">&gt;</span> <span class="n">defense_strength</span><span class="p">:</span><br />                        <span class="n">defense_strength</span> <span class="o">=</span> <span class="n">attack_strength</span><br />                        <span class="n">winning_colony</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">,</span> <span class="mf">0</span><span class="p">]</span><br />                        <span class="n">changes</span> <span class="o">+=</span> <span class="mf">1</span><br />&nbsp;<br />                    <span class="n">state_next</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mf">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">winning_colony</span><br />                    <span class="n">state_next</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mf">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">defense_strength</span><br />&nbsp;<br />    <span class="k">return</span> <span class="n">changes</span><br /></pre></div><br /><figcaption>Cython</figcaption></figure></div>
+
+</div>
+
+<p></div>
+</div></p>
+<p>Finally, here&#8217;s a pure C version of the GrowCut kernel, ready
+to interface into&nbsp;Python.</p>
+<div class="accordion-group">
+  <div class="accordion-heading"><a class="accordion-toggle" href="#growcut_c" data-toggle="collapse" data-parent="#accordion2">C GrowCut</a></div>
+<div id="growcut_c" class="accordion-body collapse">
+<div class="accordion-inner">
+
+    <div class="codebox"><figure class="code"><div class="highlight"><pre><span class="o">%%</span><span class="n">c</span> <span class="n">_c_kernel</span><br />&nbsp;<br /><span class="cp">#include &quot;Python.h&quot;</span><br /><span class="cp">#include &quot;math.h&quot;</span><br />&nbsp;<br /><span class="cp">#define image(row, column, channel)       (_image[row*width*3 +column*3 + channel])</span><br /><span class="cp">#define state(row, column, idx)       (_state[row*width*2 +column*2 + idx])</span><br /><span class="cp">#define state_next(row, column, idx)  (_state_next[row*width*2 +column*2 + idx])</span><br />&nbsp;<br /><span class="kt">double</span> <span class="n">distance</span><span class="p">(</span><span class="kt">double</span><span class="o">*</span><span class="p">,</span> <span class="n">Py_ssize_t</span><span class="p">,</span> <span class="n">Py_ssize_t</span><span class="p">,</span> <span class="n">Py_ssize_t</span><span class="p">,</span> <span class="n">Py_ssize_t</span><span class="p">,</span> <span class="n">Py_ssize_t</span><span class="p">);</span><br /><span class="kt">double</span> <span class="n">g</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span><br /><span class="kt">double</span> <span class="n">s3</span><span class="p">;</span><br />&nbsp;<br /><span class="n">Py_ssize_t</span> <span class="n">_window_floor</span><span class="p">(</span><span class="n">Py_ssize_t</span><span class="p">,</span> <span class="n">Py_ssize_t</span><span class="p">);</span><br /><span class="n">Py_ssize_t</span> <span class="n">_window_ceil</span><span class="p">(</span><span class="n">Py_ssize_t</span><span class="p">,</span> <span class="n">Py_ssize_t</span><span class="p">,</span> <span class="n">Py_ssize_t</span><span class="p">);</span><br />&nbsp;<br /><span class="kt">int</span> <span class="nf">_c_kernel</span><span class="p">(</span><span class="kt">double</span> <span class="o">*</span><span class="n">_image</span><span class="p">,</span> <span class="kt">double</span> <span class="o">*</span><span class="n">_state</span><span class="p">,</span> <span class="kt">double</span> <span class="o">*</span><span class="n">_state_next</span><span class="p">,</span> <span class="n">Py_ssize_t</span> <span class="n">window_radius</span><span class="p">,</span> <span class="n">Py_ssize_t</span> <span class="n">width</span><span class="p">,</span> <span class="n">Py_ssize_t</span> <span class="n">height</span><span class="p">)</span><br /><span class="p">{</span><br />    <span class="n">Py_ssize_t</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">;</span><br />    <span class="kt">double</span> <span class="n">gc</span><span class="p">,</span> <span class="n">attack_strength</span><span class="p">,</span> <span class="n">defense_strength</span><span class="p">,</span> <span class="n">winning_colony</span><span class="p">;</span><br />    <span class="kt">int</span> <span class="n">changes</span><span class="p">;</span><br />&nbsp;<br />    <span class="n">s3</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">);</span><br />    <span class="n">changes</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><br />&nbsp;<br />    <span class="k">for</span> <span class="p">(</span><span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">width</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span><br />        <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">height</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span><br />&nbsp;<br />            <span class="n">winning_colony</span> <span class="o">=</span> <span class="n">state</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span><br />            <span class="n">defense_strength</span> <span class="o">=</span> <span class="n">state</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span><br />&nbsp;<br />            <span class="k">for</span> <span class="p">(</span><span class="n">jj</span> <span class="o">=</span> <span class="n">_window_floor</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">window_radius</span><span class="p">);</span> <span class="n">jj</span> <span class="o">&lt;</span> <span class="n">_window_ceil</span><span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">window_radius</span><span class="p">);</span> <span class="n">jj</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span><br />                <span class="k">for</span> <span class="p">(</span><span class="n">ii</span> <span class="o">=</span> <span class="n">_window_floor</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">window_radius</span><span class="p">);</span> <span class="n">ii</span> <span class="o">&lt;</span> <span class="n">_window_ceil</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">window_radius</span><span class="p">)</span> <span class="p">;</span> <span class="n">ii</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span><br />                    <span class="k">if</span> <span class="p">(</span><span class="n">ii</span> <span class="o">==</span> <span class="n">i</span> <span class="o">&amp;&amp;</span> <span class="n">jj</span> <span class="o">==</span> <span class="n">j</span><span class="p">)</span> <span class="p">{</span><br />                        <span class="k">continue</span><span class="p">;</span><br />                    <span class="p">}</span><br />                    <span class="c1">// p -&gt; current cell, (i, j)</span><br />                    <span class="c1">// q -&gt; attacker, (ii, jj)</span><br />&nbsp;<br />                    <span class="n">gc</span> <span class="o">=</span> <span class="n">g</span><span class="p">(</span><span class="n">distance</span><span class="p">(</span><span class="n">_image</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">,</span> <span class="n">width</span><span class="p">));</span><br />&nbsp;<br />                    <span class="n">attack_strength</span> <span class="o">=</span> <span class="n">gc</span> <span class="o">*</span> <span class="n">state</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span><br />&nbsp;<br />                    <span class="k">if</span> <span class="p">(</span><span class="n">attack_strength</span> <span class="o">&gt;</span> <span class="n">defense_strength</span><span class="p">)</span> <span class="p">{</span><br />                        <span class="n">defense_strength</span> <span class="o">=</span> <span class="n">attack_strength</span><span class="p">;</span><br />                        <span class="n">winning_colony</span> <span class="o">=</span> <span class="n">state</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">jj</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span><br />                        <span class="n">changes</span> <span class="o">+=</span> <span class="mi">1</span><span class="p">;</span><br />                    <span class="p">}</span><br />                    <span class="n">state_next</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="n">winning_colony</span><span class="p">;</span><br />                    <span class="n">state_next</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">defense_strength</span><span class="p">;</span><br />                <span class="p">}</span><br />            <span class="p">}</span><br />        <span class="p">}</span><br />    <span class="p">}</span><br />    <span class="k">return</span> <span class="n">changes</span><span class="p">;</span><br /><span class="p">}</span><br />&nbsp;<br /><span class="n">Py_ssize_t</span> <span class="nf">_window_floor</span><span class="p">(</span><span class="n">Py_ssize_t</span> <span class="n">idx</span><span class="p">,</span> <span class="n">Py_ssize_t</span> <span class="n">radius</span><span class="p">)</span><br /><span class="p">{</span><br />    <span class="k">if</span> <span class="p">(</span><span class="n">radius</span> <span class="o">&gt;</span> <span class="n">idx</span><span class="p">)</span> <span class="p">{</span><br />        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span><br />    <span class="p">}</span><br />    <span class="k">else</span> <span class="p">{</span><br />        <span class="k">return</span> <span class="n">idx</span> <span class="o">-</span> <span class="n">radius</span><span class="p">;</span><br />    <span class="p">}</span><br /><span class="p">}</span><br />&nbsp;<br /><span class="n">Py_ssize_t</span> <span class="nf">_window_ceil</span><span class="p">(</span><span class="n">Py_ssize_t</span> <span class="n">idx</span><span class="p">,</span> <span class="n">Py_ssize_t</span> <span class="n">ceil</span><span class="p">,</span> <span class="n">Py_ssize_t</span> <span class="n">radius</span><span class="p">)</span><br /><span class="p">{</span><br />    <span class="k">if</span> <span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="n">radius</span> <span class="o">&gt;</span> <span class="n">ceil</span><span class="p">)</span> <span class="p">{</span><br />        <span class="k">return</span> <span class="n">ceil</span><span class="p">;</span><br />    <span class="p">}</span><br />    <span class="k">else</span> <span class="p">{</span><br />        <span class="k">return</span> <span class="n">idx</span> <span class="o">+</span> <span class="n">radius</span><span class="p">;</span><br />    <span class="p">}</span><br /><span class="p">}</span><br />&nbsp;<br /><span class="kt">double</span> <span class="nf">distance</span><span class="p">(</span><span class="kt">double</span> <span class="o">*</span><span class="n">_image</span><span class="p">,</span><br />                <span class="n">Py_ssize_t</span> <span class="n">r0</span><span class="p">,</span> <span class="n">Py_ssize_t</span> <span class="n">c0</span><span class="p">,</span><br />                <span class="n">Py_ssize_t</span> <span class="n">r1</span><span class="p">,</span> <span class="n">Py_ssize_t</span> <span class="n">c1</span><span class="p">,</span><br />                <span class="n">Py_ssize_t</span> <span class="n">width</span><span class="p">)</span><br /><span class="p">{</span><br />    <span class="kt">double</span> <span class="n">s</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">d</span><span class="p">;</span><br />    <span class="kt">int</span> <span class="n">i</span><span class="p">;</span><br />&nbsp;<br />    <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span><br />        <span class="n">d</span> <span class="o">=</span> <span class="n">image</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">-</span> <span class="n">image</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">c1</span><span class="p">,</span> <span class="n">i</span><span class="p">);</span><br />        <span class="n">s</span> <span class="o">+=</span> <span class="n">d</span> <span class="o">*</span> <span class="n">d</span><span class="p">;</span><br />    <span class="p">}</span><br />    <span class="k">return</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">s</span><span class="p">);</span><br /><span class="p">}</span><br />&nbsp;<br /><span class="kt">double</span> <span class="nf">g</span><span class="p">(</span><span class="kt">double</span> <span class="n">d</span><span class="p">)</span><br /><span class="p">{</span><br />    <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">d</span> <span class="o">/</span> <span class="n">s3</span><span class="p">);</span><br /><span class="p">}</span><br /></pre></div><br /><figcaption>C</figcaption></figure></div>
+
+</div>
+
+<p></div>
+</div></p>
+<h3>Performance&nbsp;Comparison</h3>
+<p>We time the verified kernels over a range of square image sizes.  Again,
+very small images in Python, then larger images in Cython, Numba, and&nbsp;C.</p>
+<div class="accordion-group">
+  <div class="accordion-heading"><a class="accordion-toggle" href="#timer_growcut" data-toggle="collapse" data-parent="#accordion2">GrowCut Benchmark Code</a></div>
+<div id="timer_growcut" class="accordion-body collapse">
+<div class="accordion-inner">
+
+    <div class="codebox"><figure class="code"><div class="highlight"><pre><span class="k">def</span> <span class="nf">time_kernel</span><span class="p">(</span><span class="n">k_name</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span><br />    <span class="sd">&quot;&quot;&quot;Timeit Helper Function (GrowCut Functions)</span><br />&nbsp;<br /><span class="sd">    Parameters</span><br /><span class="sd">    ----------</span><br /><span class="sd">    k_name : str</span><br /><span class="sd">        Name of the GrowCut kernel in the __main__ namespace to be timed.</span><br /><span class="sd">    N : int</span><br /><span class="sd">        Size of image arrays to construct and pass to function.</span><br /><span class="sd">    dtype : np.dtype</span><br /><span class="sd">        Type of arrays to construct and pass to function.</span><br />&nbsp;<br /><span class="sd">    Returns</span><br /><span class="sd">    -------</span><br /><span class="sd">    func_time : float</span><br /><span class="sd">        Average execution time over 3 trials</span><br /><span class="sd">    &quot;&quot;&quot;</span><br />&nbsp;<br />    <span class="kn">import</span> <span class="nn">__main__</span><br />    <span class="n">image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span><br />    <span class="n">state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span><br />    <span class="n">state_next</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><br />&nbsp;<br />    <span class="c"># colony 1 is strength 1 at position 0,0</span><br />    <span class="c"># colony 0 is strength 0 at all other positions</span><br />    <span class="n">state</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><br />    <span class="n">state</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><br />&nbsp;<br />    <span class="n">__main__</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">image</span><br />    <span class="n">__main__</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span><br />    <span class="n">__main__</span><span class="o">.</span><span class="n">state_next</span> <span class="o">=</span> <span class="n">state_next</span><br />&nbsp;<br />    <span class="n">trials</span> <span class="o">=</span> <span class="mi">3</span><br />&nbsp;<br />    <span class="k">return</span> <span class="n">timeit</span><span class="p">(</span><span class="n">stmt</span><span class="o">=</span><span class="s">&quot;kernel(__main__.image, __main__.state, __main__.state_next, 10)&quot;</span><span class="p">,</span><br />                  <span class="n">setup</span><span class="o">=</span><span class="s">&quot;from __main__ import </span><span class="si">%s</span><span class="s"> as kernel; import __main__&quot;</span> <span class="o">%</span> <span class="n">k_name</span><span class="p">,</span><br />                  <span class="n">number</span><span class="o">=</span><span class="n">trials</span><span class="p">)</span><span class="o">/</span><span class="n">trials</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+</div>
+
+<p></div>
+</div></p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="n">Ns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><br />&nbsp;<br /><span class="n">kernel_names</span> <span class="o">=</span> <span class="s">&#39;cython_kernel&#39;</span><span class="p">,</span> <span class="s">&#39;numba_kernel&#39;</span><span class="p">,</span> <span class="s">&#39;c_kernel&#39;</span><span class="p">,</span> <span class="s">&#39;python_kernel&#39;</span><span class="p">,</span><br /><span class="n">time_and_plot</span><span class="p">(</span><span class="s">&#39;GrowCut&#39;</span><span class="p">,</span> <span class="n">Ns</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">kernel_names</span><span class="p">,</span> <span class="n">time_kernel</span><span class="p">,</span><br />              <span class="s">&#39;Image Size: NxN&#39;</span><span class="p">,</span> <span class="s">&#39;Time: s&#39;</span><span class="p">,</span> <span class="n">yscale</span><span class="o">=</span><span class="s">&#39;log&#39;</span><span class="p">,</span> <span class="n">yscaling</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+<p><img alt="" src="/media/img/_fig_6901.png" /></p>
+<div class="codebox"><figure class="code"><div class="highlight"><pre><span class="n">Ns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><br />&nbsp;<br /><span class="n">kernel_names</span> <span class="o">=</span> <span class="s">&#39;cython_kernel&#39;</span><span class="p">,</span> <span class="s">&#39;numba_kernel&#39;</span><span class="p">,</span> <span class="s">&#39;c_kernel&#39;</span><br /><span class="n">time_and_plot</span><span class="p">(</span><span class="s">&#39;GrowCut&#39;</span><span class="p">,</span> <span class="n">Ns</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">kernel_names</span><span class="p">,</span> <span class="n">time_kernel</span><span class="p">,</span><br />              <span class="s">&#39;Image Size: NxN&#39;</span><span class="p">,</span> <span class="s">&#39;Time: s&#39;</span><span class="p">,</span> <span class="n">yscale</span><span class="o">=</span><span class="s">&#39;log&#39;</span><span class="p">,</span> <span class="n">yscaling</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><br /></pre></div><br /><figcaption>Python</figcaption></figure></div>
+
+<p><img alt="" src="/media/img/_fig_7001.png" /></p>
+<p>We don&#8217;t observe a significant performance difference between the C, Cython, or
+Numba kernels.  Of course, only one of the three kernels is written in clean,
+dynamic, Python&nbsp;:)</p>
+<h2>Conclusion</h2>
+<p>In this open notebook, we compared Numba against Cython and C.  First, we
+explored some simple benchmarks. Then, we returned to the GrowCut example.  Our
+experiments reveal that Numba performs as well as Cython and native C interfaced
+directly into Python.  At the same time, the Numba code is clearly the easiest
+to understand and write from a Python programmer&#8217;s&nbsp;perspective.</p>
+<p>We still have much more ground to cover, including how the professional version
+of Numba, <a href="http://docs.continuum.io/numbapro/">NumbaPro</a>, can accelerate code on
+GPUs.  <a href="http://docs.continuum.io/numbapro/">NumbaPro</a> is available as part of
+our <a href="https://store.continuum.io/cshop/accelerate/">Anaconda Accelerate</a>&nbsp;product.</p>
+<h3>Update:</h3>
+<p>At the request of several commenters, <a href="https://gist.github.com/ahmadia/5638980">here is a test script and benchmarks</a> that we ran on PyPy and Anaconda Python (with Numba).  The results are not tuned (I am not a PyPy expert!) so we did not post them in the blog.  We&#8217;d be happy to look deeper into this with the PyPy developers.  While PyPy is not currently installed on Wakari, we are looking at a number of ways we can install and support the PyPy&nbsp;community.</p>
+<h3>Acknowledgements</h3>
+<p>This notebook features the GrowCut algorithm, which was introduced in <a href="http://xn--80afqipfk7a.xn--p1ai/2005/proceedings/papers/VezhntvetsKonushin.pdf">“GrowCut”
+- Interactive Multi-Label N-D Image Segmentation By Cellular
+Automata&#8221;</a> 
+by V. Vezhnevets and V.
+Konouchine.  Credit for the <a href="https://github.com/stefanv/growcut_py">original native Python code and the accelerated
+Cython code</a> is due to Dr. Nathan Faggian
+and Dr. Stefan van der Walt.  The Cython implementation is used under the terms
+of the <span class="caps">BSD</span>&nbsp;license.</p>		<b>Tags: </b>
+	 
+		<a class="small" href="/blog/tags/Numba">
+			Numba
+		</a>
+	 
+		<a class="small" href="/blog/tags/IPython%20Notebook">
+			IPython Notebook
+		</a>
+	 
+		<a class="small" href="/blog/tags/Python">
+			Python
+		</a>
+	 
+		<a class="small" href="/blog/tags/ImageProcessing">
+			ImageProcessing
+		</a>
+			
+	<!-- Navigation -->
+	<div id="nave-above" class="navigation">
+		<div class="nav-previous" style="float: left;">
+			<a class="next"
+				title="Wakari and Financial Health Checks"
+								href="/blog/wakari_financial_health_checks">
+				← Wakari and Financial Health Checks
+			</a>
+		</div>
+		<div class="nav-next" style="float: right;">
+			<a class="prev disabled"
+				title=""
+				>
+				 →
+			</a>
+		</div>
+		<br>
+		<br>
+	</div>
+
+
+	<!-- end navigation -->
+	<div id="disqus_thread"></div>
+        <script type="text/javascript">
+            /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+            var disqus_shortname = 'continuumblog'; // required: replace example with your forum shortname
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        </script>
+        <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+            </div><!-- #content -->
+          </section>
+            <section class="span4"><!-- sidebar -->
+    <!-- Search -->
+    <!-- Recent Posts -->
+    <!-- Categories -->
+    <!-- Archives -->
+    <br/><br/><br/>
+    
+
+    <div id="recent-posts-3" class="widget widget_recent_entries">       <h2 class="widget-title">Recent Posts</h2><ul>
+            <li> <a href="/blog/numba_performance" title="Accelerating Python Libraries with Numba (Part 2)">Accelerating Python Libraries with Numba (Part 2)</a></li>
+            <li> <a href="/blog/wakari_financial_health_checks" title="Wakari and Financial Health Checks">Wakari and Financial Health Checks</a></li>
+            <li> <a href="/blog/numba_growcut" title="Accelerating Python Libraries with Numba (Part 1)">Accelerating Python Libraries with Numba (Part 1)</a></li>
+            <li> <a href="/blog/mkl-optimizations" title="MKL Optimizations for Anaconda">MKL Optimizations for Anaconda</a></li>
+            <li> <a href="/blog/virtual-training-now-available" title="Virtual Python Training Courses now available">Virtual Python Training Courses now available</a></li>
+        </ul>
+    </div>
+    
+    <div id="categories-3" class="widget widget_categories"><h2 class="widget-title">Tags</h2>      
+    <ul>
+        
+        <li><a class="cat-item cat-item-" href="/blog/tags/ARM11" title="View all posts filed under ARM11 ">
+            ARM11 
+            </a>
+    </li>
+
+            
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Astronomy" title="View all posts filed under Astronomy ">
+            Astronomy 
+            </a>
+    </li>
+
+            
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Blaze" title="View all posts filed under Blaze ">
+            Blaze 
+            </a>
+    </li>
+
+            
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Boolean%20satisfiability%20problem" title="View all posts filed under Boolean satisfiability problem ">
+            Boolean satisfiability problem 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/CUDA" title="View all posts filed under CUDA ">
+            CUDA 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Conda" title="View all posts filed under Conda ">
+            Conda 
+            </a>
+    </li>
+
+            
+            
+            
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Disco" title="View all posts filed under Disco ">
+            Disco 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Finance" title="View all posts filed under Finance ">
+            Finance 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Genomics" title="View all posts filed under Genomics ">
+            Genomics 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/IOPro" title="View all posts filed under IOPro ">
+            IOPro 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/IPython%20Notebook" title="View all posts filed under IPython Notebook ">
+            IPython Notebook 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/ImageProcessing" title="View all posts filed under ImageProcessing ">
+            ImageProcessing 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Intel" title="View all posts filed under Intel ">
+            Intel 
+            </a>
+    </li>
+
+            
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/MKL" title="View all posts filed under MKL ">
+            MKL 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/ML" title="View all posts filed under ML ">
+            ML 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/MapReduce" title="View all posts filed under MapReduce ">
+            MapReduce 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/NLP" title="View all posts filed under NLP ">
+            NLP 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Numba" title="View all posts filed under Numba ">
+            Numba 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/NumbaPro" title="View all posts filed under NumbaPro ">
+            NumbaPro 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Numpy" title="View all posts filed under Numpy ">
+            Numpy 
+            </a>
+    </li>
+
+            
+            
+            
+            
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Python" title="View all posts filed under Python ">
+            Python 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Raspberry%20Pi" title="View all posts filed under Raspberry Pi ">
+            Raspberry Pi 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/SAT%20solver" title="View all posts filed under SAT solver ">
+            SAT solver 
+            </a>
+    </li>
+
+            
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Scipy" title="View all posts filed under Scipy ">
+            Scipy 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Sports" title="View all posts filed under Sports ">
+            Sports 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Sudoku" title="View all posts filed under Sudoku ">
+            Sudoku 
+            </a>
+    </li>
+
+            
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Tools" title="View all posts filed under Tools ">
+            Tools 
+            </a>
+    </li>
+
+            
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Wakari" title="View all posts filed under Wakari ">
+            Wakari 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/Weather" title="View all posts filed under Weather ">
+            Weather 
+            </a>
+    </li>
+
+            
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/conda" title="View all posts filed under conda ">
+            conda 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/easy_install" title="View all posts filed under easy_install ">
+            easy_install 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/iPython" title="View all posts filed under iPython ">
+            iPython 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/pip" title="View all posts filed under pip ">
+            pip 
+            </a>
+    </li>
+
+            
+        <li><a class="cat-item cat-item-" href="/blog/tags/wiseRF" title="View all posts filed under wiseRF ">
+            wiseRF 
+            </a>
+    </li>
+
+            </ul>
+    </div>
+
+
+</section><!-- end span4 -->          </section>
+        </section>
+      </article>
+    </section>
+  </section>  
+<!-- close contnet -->
+<!-- Footer -->
+      <footer class="footer">
+        <section class="container footer_center">
+            <section class="row">
+                <article class="span4" style="margin-top: -10px; ">
+                    <figure style="margin-bottom: -5px;"><a href="" title="Continuum Analytics"><img src="/media/img/footer_logo.png" alt="Continuum Analytics" width="134" height="64" class="footer_logo"/></a></figure>
+                    3801 Capital of Texas Highway South<br/>
+                    Suite 250<br/>
+                    Austin, TX 78704<br/>
+                    <br/>
+                    512.222.5440<br/>
+                    <a class="footer_links" href="mailto:&#x69;&#x6e;&#102;&#x6f;&#00064;&#x63;&#000111;&#110;&#x74;&#x69;&#x6e;&#x75;&#x75;&#000109;&#x2e;&#105;&#111;">&#x69;&#x6e;&#102;&#x6f;&#00064;&#x63;&#000111;&#110;&#x74;&#x69;&#x6e;&#x75;&#x75;&#000109;&#x2e;&#105;&#111;</a><br/>
+                    <section class="footer_social_media">
+                        <a href="http://plus.google.com/108011804375544975017" title="Circle Continuum Analytics on Google+" target="_blank"><img src="/media/img/gplus_header.png" alt="Circle Continuum Analytics on Google+" width="33" height="33"></a>
+                        <a href="http://www.twitter.com/continuumio" title="Follow @continuumio on Twitter" target="_blank"><img src="/media/img/twitter_header.png" alt="Follow @continuumio on Twitter" width="33" height="33"></a>
+                        <a href="http://www.linkedin.com/company/continuum-analytics-inc-" title="Follow Continuum Analytics on LinkedIn" target="_blank"><img src="/media/img/linkedin_header.png" alt="Follow Continuum Analytics on LinkedIn" width="33" height="33"></a>
+                        <a href="http://www.facebook.com/ContinuumAnalytics" title="Like Continuum Analytics on Facebook" target="_blank"><img src="/media/img/facebook_header.png" alt="Like Continuum Analytics on Facebook" width="33" height="33"></a>
+                        <!--<a href="http://www.youtube.com/user/ContinuumIO" title="Check out Continuum's support videos on YouTube" target="_blank"><img src="/img/youtube_header.png') }}" alt="Check out Continuum's support videos on YouTube" width="33" height="33"></a>-->
+                    </section>
+                </article>
+                <article class="span2 footer_align_left">
+                        <b><a href="https://store.continuum.io/cshop/products" title="Products" class="footer_links">Products</a></b><br/>
+                        <a href="http://store.continuum.io/cshop/anaconda" title="Anaconda" class="footer_links">Anaconda</a><br/>
+            <a href="https://store.continuum.io/cshop/accelerate" title="Accelerate" class="footer_links">Anaconda Accelerate</a><br/>
+            <a href="https://store.continuum.io/cshop/mkl-optimizations" title="MKL" class="footer_links">MKL Optimizations</a><br/>
+            <a href="https://store.continuum.io/cshop/iopro" title="IOPro" class="footer_links">IOPro</a><br/>
+                        <a href="/wakari.html" title="Wakari" class="footer_links">Wakari</a><br/>
+                        <!--<a href="/downloads.html" title="Downloads" class="footer_links">Downloads</a><br/>-->
+                        <a href="/developer-resources.html" title="Open Source" class="footer_links">Open Source</a><br/>
+                        <a href="http://docs.continuum.io" title="Documentation" class="footer_links">Documentation</a><br/>
+                        <b><a href="" title="Services" class="footer_links">Services</a></b><br/>
+                        <a href="/consulting.html" title="Solutions" class="footer_links">Consulting</a></b><br/>
+                        <a href="/support.html" title="Support" class="footer_links">Support</a></b><br/>
+                    </article>
+                    <article class="span1 footer_align_left">
+                        <b><a href="/training.html" title="Training" class="footer_links">Training</a></b><br/>
+                        <b><a href="/developer-resources.html" title="Developer Resources" class="footer_links">Developers</a></b><br/>
+                        <b><a href="/about-continuum.html" title="Company" class="footer_links">Company</a></b><br/>
+                        <a href="/our-team.html" title="Our Team" class="footer_links">Our Team</a><br/>
+                        <a href="/careers.html" title="Careers" class="footer_links">Careers</a><br/>
+                        <a href="/blog" title="Blog" class="footer_links">Blog</a><br/>
+                        <a href="/press" title="News & Events" class="footer_links">News & Events</a><br/>
+                        <a href="/news.html" title="In the Press" class="footer_links">In the Press</a><br/>
+                        <a href="http://www.numfocus.org" title="NumFocus" class="footer_links">NumFocus</a><br/>
+                        <b><a href="/contact-us.html" title="Contact Us" class="footer_links">Contact</a></b>
+                    </article>
+                <article class="span4" style="padding-left: 10px">
+                    <section class="footer_twitter"><a href="http://www.twitter.com/continuumio" class="footer_links" target="_blank">Follow us on Twitter!</a></section>
+                    <section id="jstwitter"></section>
+                    <section class="footer_copyright">2013 Continuum Analytics&reg;</section>
+                </article>
+            </section>
+        </section>
+    </footer>
+<!-- close footer -->
+    <!-- Start of StatCounter Code for Default Guide -->
+<script type="text/javascript">
+var sc_project=8151065; 
+var sc_invisible=0; 
+var sc_security="4fab10ae"; 
+</script>
+<script type="text/javascript"
+src="http://www.statcounter.com/counter/counter.js"></script>
+<noscript><div class="statcounter"><a title="tumblr
+analytics" href="http://statcounter.com/tumblr/"
+target="_blank"><img class="statcounter"
+src="http://c.statcounter.com/8151065/0/4fab10ae/0/"
+alt="tumblr analytics"></a></div></noscript>
+<!-- End of StatCounter Code for Default Guide -->
+    	<script src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+	<script src="/media/js/bootstrap.js"></script>
+	<script src="/media/js/prettify.js"></script>
+	<script src="/media/js/twitter.js"></script>
+	<script src="/media/js/zohocap.js"></script>
+	<script src="/media/js/wfaqs.js"></script>
+	<script src="/media/js/rss_script.js"></script>
+	
+    							    	
+    				<script src="/media/js/libs/bootstrap-collapse.js"></script>
+		<script src="/media/js/libs/bootstrap-dropdown.js"></script>
+		<script type="text/javascript" src="https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_SVG"> </script>
+		<script type="text/x-mathjax-config">
+			MathJax.Hub.Config({
+			  tex2jax: {inlineMath: [['$$','$$'], ['\\(','\\)']]},
+			  "SVG": { scale: 125}
+			});
+		</script>
+    
+		<!--[if lt IE 7 ]>
+		  <script src="/media/js/libs/dd_belatedpng.js"></script>
+		  <script>DD_belatedPNG.fix('img, .png_bg'); // Fix any <img> or .png_bg bg-images. Also, please read goo.gl/mZiyb </script>
+		<![endif]-->
+        <!-- HelpOnClick -->
+<script type="text/javascript" src="//traffic4.helponclick.com/assist?lang=en&amp;a=510be6b48fc04ca1812005d2b86abfd4&amp;mode=widget&amp;widget=l"></script><div style="display:none"><a href="http://www.helponclick.com">Live Chat</a></div>
+<!-- /HelpOnClick -->
+  </body>
+</html>
