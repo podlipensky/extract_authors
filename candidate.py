@@ -2,9 +2,10 @@
 import os
 from pattern.web import plaintext
 import re
-from helper import Helper
 
 # tags we're consider as a good home for an author
+from helper import get_context
+
 TAGS = ['a', 'span', 'div', 'h3', 'h4', 'b', 'strong', 'i', 'p', 'li']
 
 BEFORE = ['posted', 'by', 'author', 'and', '&', 'from']
@@ -163,7 +164,7 @@ class Candidate:
         # check distance to Hx tags
         self.header_dist = self.get_headers_dist(self.el)
 
-        before, after = Helper.get_context(self.el, self.text_lower)
+        before, after = get_context(self.el, self.text_lower)
 
         self.words_before = self.find_words_before(before)
         self.words_after = self.find_words_after(after)

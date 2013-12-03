@@ -1,5 +1,5 @@
 import os
-from pattern.web import Text, plaintext, collapse_linebreaks, collapse_tabs, collapse_spaces
+from pattern.web import Text, plaintext, collapse_linebreaks, collapse_tabs, collapse_spaces, URL
 import re
 
 
@@ -36,12 +36,12 @@ def get_context(el, text):
     text_words = text.split(' ')
     context_len = len(text_words) + .0
     while parent is not None:
-        norm_source = Helper.cleanup(parent.source, False)
+        norm_source = cleanup(parent.source, False)
         source = plaintext(norm_source, linebreaks=1).lower()
-        if context_len / len(source.split(' ')) < 0.7 and Helper.get_words_count(source) >= 20:
+        if context_len / len(source.split(' ')) < 0.7 and get_words_count(source) >= 20:
             # extract string of total length 20 with center in position of text
             # and maximum raidus of 10 words
-            source = Helper.cleanup(source)
+            source = cleanup(source)
             if (' ' + text_words[0] + ' ') not in (' ' + source + ' '):
                 break
             context = source.split(' ')

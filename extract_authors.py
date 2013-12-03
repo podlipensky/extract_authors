@@ -6,7 +6,8 @@ from numpy import array, save, load
 from sklearn import linear_model, svm
 from sklearn.preprocessing import StandardScaler
 from candidate import TAGS, Candidate, STOP_WORDS
-from helper import Helper, etime, read_file, read_web
+from dataset_generator import SampleGenerator
+from helper import etime, read_file, read_web, get_words, get_biwords
 
 """
     This script's aim is to find author name of any arbitrary article based on
@@ -31,95 +32,88 @@ from helper import Helper, etime, read_file, read_web
        previous result - stop and use previous plaintext as a context.
 """
 
-DEFAULT_URLS_PATH = './urls.txt'
-
-class SampleGenerator(object):
-
-    FILE_IDX = 1
-
-    def __init__(self, urls_path=DEFAULT_URLS_PATH):
-        self.urls_path = urls_path
-
-    def get_urls(self):
-        f = open(self.urls_path)
-        urls = []
-        url = f.readline()
-        while url:
-            urls.append(url)
-            url = f.readline()
-        f.close()
-        return urls
-
-    def get_filename(url, idx):
-        return 'html/' + str(idx) + URL(url).domain + '.html'
-
-    def save_html(url, filename):
-        try:
-            uri = URL(url)
-            html = uri.download(cached=True)
-            html = '<!--%s--> %s' % (url, html)
-            if not os.path.isfile(filename):
-                f = open(filename, 'w')
-                f.write(html)
-                f.close()
-                print 'Add new file:' + filename
-            return filename
-        except:
-            return ''
-
-
-class AuthorDetector(SampleGenerator):
-
-    def __init__(self, feature_extractor, algo_cls, urls_path=DEFAULT_URLS_PATH):
+class AuthorDetector():
+    def __init__(self, feature_extractor, algo_cls):
         self.feature_extractor = feature_extractor
         self.algo_cls = algo_cls
-        super(AuthorDetector).__init__(urls_path)
 
     # <meta content="Nischelle Turner, CNN" itemprop="author" name="author"/>
     # <meta name="author" content='Matt Asay' />
 
-    def get_train_data(self):
-        X = []
-        y = []
-        urls = self.get_urls()
+    # def get_train_data(self):
+    #     X = []
+    #     y = []
+    #     urls = self.get_urls()
+    #
+    #     # work with particular url only
+    #     # global FILE_IDX
+    #     # FILE_IDX = 17
+    #     # urls = ['http://www.mtv.com/news/articles/1708070/arrested-development-season-four-netflix-buzz.jhtml']
+    #
+    #     for url in urls:
+    #         # calculate features, prepare for training/classification
+    #         candidates = self.get_candidates(url)
+    #
+    #         # transform dataset
+    #         for candidate in candidates:
+    #             X.append(candidate.get_features())
+    #             # determine whether this is a true author or not
+    #             attrs = candidate.el.attributes
+    #             is_target = 'author' in attrs and candidate.text_lower in attrs['author'].lower()
+    #             y.append(1 if is_target else 0)
+    #
+    #             # print candidate.text
+    #             if is_target:
+    #                 print 'Candidate found: %s' % candidate.text
+    #                 print candidate
+    #                 print
+    #             else:
+    #                 print candidate
+    #
+    #     return (array(X), array(y))
 
-        # work with particular url only
-        # global FILE_IDX
-        # FILE_IDX = 17
-        # urls = ['http://www.mtv.com/news/articles/1708070/arrested-development-season-four-netflix-buzz.jhtml']
+    def train(self, sampler):
+        if sampler:
+            X = []
+            y = []
+            urls = sampler.get_urls()
 
-        for url in urls:
-            # calculate features, prepare for training/classification
-            candidates = self.get_candidates(url)
+            for url in urls:
+                # calculate features, prepare for training/classification
+                candidates = self.get_candidates(url)
 
-            # transform dataset
-            for candidate in candidates:
-                X.append(candidate.get_features())
-                # determine whether this is a true author or not
-                attrs = candidate.el.attributes
-                is_target = 'author' in attrs and candidate.text_lower in attrs['author'].lower()
-                y.append(1 if is_target else 0)
+                # transform dataset
+                features = []
+                authors = []
+                is_author_found = False
 
-                # print candidate.text
-                if is_target:
-                    print 'Candidate found: %s' % candidate.text
-                    print candidate
-                    print
-                else:
-                    print candidate
+                for candidate in candidates:
+                    features.append(candidate.get_features())
+                    # determine whether this is a true author or not
+                    is_target = sampler.is_author(url, candidate.el, candidate.text)
+                    is_author_found = is_author_found or is_target
+                    authors.append(1 if is_target else 0)
 
-        self.data = (array(X), array(y))
+                    if is_target:
+                        print 'Candidate found: %s' % candidate.text
+                        print candidate
+                        print
 
-        self.save()
+                if is_author_found:
+                    X.extend(features)
+                    y.extend(authors)
 
-    def train(self):
-        self.algo_cls().fit(self.data)
+            self.save((array(X), array(y)))
+        else:
+            data = self.restore()
+        self.algo_cls().fit(*data)
 
     def predict(self, url):
         # calculate features, prepare for training/classification
         candidates = self.get_candidates(url)
         X = []
         for candidate in candidates:
+            print candidate
             X.append(candidate.get_features())
         y = self.algo_cls.clf.predict(X)
         self.print_results(y, candidates)
@@ -129,29 +123,17 @@ class AuthorDetector(SampleGenerator):
             if score > 0:
                 pprint(candidate.text)
 
-    def get_candidates(self, url, recognition=False):
+    def get_candidates(self, url):
         print
-        print 'Working with (%s): %s' % (self.FILE_IDX, url)
+        print 'Working with: %s' % url
 
         start = etime()
 
-        filename = self.get_filename(url, self.FILE_IDX)
-        self.FILE_IDX += 1
-        if os.path.isfile(filename):
-            html = read_file(filename)
-        else:
-            if recognition:
-                html = read_web(url)
-            else:
-                # just save new file and wait till manual author mark
-                print 'New URL found: ' + url
-                self.save_html(url, filename)
-                return []
-
+        html = read_web(url)
         candidates = self.feature_extractor.get_candidates(html)
 
         end = etime()
-        print 'Gather candidates: %s' % str(end - start)
+        print 'Gather candidates time: %s' % str(end - start)
 
         start = etime()
 
@@ -162,20 +144,19 @@ class AuthorDetector(SampleGenerator):
             candidate.calculate_features()
 
         end = etime()
-        # print unique(y)
-        print 'Calculate features: %s' % str(end - start)
+        print 'Calculate features time: %s' % str(end - start)
 
         return candidates
 
-    def save(self):
-        Xa, ya = self.data
+    def save(self, data):
+        Xa, ya = data
         save('sample', Xa)
         save('target', ya)
 
     def restore(self):
         X = load('sample.npy')
         y = load('target.npy')
-        self.data = (X.astype(float), y.astype(float))
+        return (X.astype(float), y.astype(float))
 
 
 class LogisticRegression():
@@ -212,7 +193,7 @@ class FeatureExtractor(object):
             for el in elements:
                 # looking for username
                 idx = 0
-                words = Helper.get_words(el)
+                words = get_words(el)
                 words = filter(lambda w: len(w) > 1, words)
 
                 # for word in words:
@@ -222,7 +203,7 @@ class FeatureExtractor(object):
 
                 # looking for first+last name
                 idx = 0
-                for text in Helper.get_biwords(filter(len, words)):
+                for text in get_biwords(filter(len, words)):
                     # check if any of stop words appears in the text
                     has_stop_word = False
                     text_split = text.split(' ')
@@ -254,21 +235,13 @@ class FeatureExtractor(object):
         return elements
 
 
-
-# X, y = train()
-# X, y = restore()
-
-
-X = X.tolist()
-y = y.tolist()
-
-
 def get_algo_from_name(name):
     name_lower = name.lower()
     if (name_lower == 'lr'):
         return LogisticRegression
     if (name_lower == 'svm'):
         return SVM
+
 
 def __main__():
     parser = OptionParser()
@@ -283,29 +256,14 @@ def __main__():
 
     algo_cls = get_algo_from_name(options.algorithm) if options.algorithm else LogisticRegression
     detector = AuthorDetector(FeatureExtractor(), algo_cls)
-    options.train = True
-    options.url = 'http://venturebeat.com/2013/05/19/biolite-stoves/'
+
+    # options.train = True
+    # options.url = 'http://venturebeat.com/2013/05/19/biolite-stoves/'
+
     if options.train:
-        detector.train()
+        sampler = SampleGenerator(urls_path='urls/cnn.com.txt')
+        detector.train(sampler)
     if options.url:
         detector.predict(options.url)
-
-    # logistic_regression()
-    # svm_alg()
-
-    P = []
-    # test_url = 'http://alistapart.com/article/designing-for-breakpoints'
-    test_url = 'http://venturebeat.com/2013/05/19/biolite-stoves/'
-    # candidates = extract_candidates(test_url, True)
-    # for candidate in candidates:
-    #     #pprint(candidate.text, width=600)
-    #     #pprint(candidate.get_features(), width=600)
-    #     print candidate
-    #     P.append(candidate.get_features())
-    # result = clf.predict(P)
-    # pprint(result)
-    # for i in range(len(result)):
-    #     if result[i] > 0:
-    #         pprint(candidates[i].text)
 
 __main__()
