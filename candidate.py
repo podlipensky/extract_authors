@@ -1,5 +1,4 @@
 # strings we're expecting to near author's name
-import os
 from pattern.web import plaintext
 import re
 
@@ -31,13 +30,6 @@ for tag in HEADER_TAGS:
     HEADER_RE.append(p)
 
 
-def etime():
-    """See how much user and system time this process has used so far and return the sum."""
-    user, sys, chuser, chsys, real = os.times()
-    return user+sys
-
-
-
 class Candidate:
     text = '' # text we're considering as a author's name candidate
     location = 0
@@ -62,8 +54,6 @@ class Candidate:
         self.idx = idx # word index in the text (starts from 0)
 
     def get_features(self):
-        # [self.location, self.tag_idx] +
-        # , self.has_image_around
         return self.author_attr + self.header_dist + [self.is_capitalized, self.all_capital, self.words_count] + self.words_before + self.words_after
 
     def __str__(self):
@@ -156,7 +146,7 @@ class Candidate:
 
 
     def calculate_features(self):
-        self.location = 0 #self.get_location(self.el, self.text_lower) + .0
+        self.location = 0
         self.tag_idx = TAGS.index(self.el.tag.lower())
         self.author_attr = self.get_author_attr()
         self.words_count = len(self.words)

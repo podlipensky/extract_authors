@@ -88,7 +88,6 @@ def get_words(el):
 def get_biwords(words):
     biwords = []
     for i in range(len(words)-1):
-        # if len(words[i]) > 1 and len(words[i+1]) > 1:
         biwords.append(words[i] + ' ' + words[i+1])
     return biwords
 

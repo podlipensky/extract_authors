@@ -1,13 +1,12 @@
 from optparse import OptionParser
-import os
 from pprint import pprint
-from pattern.web import URL, DOM, Text
+from pattern.web import DOM, Text
 from numpy import array, save, load
 from sklearn import linear_model, svm
 from sklearn.preprocessing import StandardScaler
 from candidate import TAGS, Candidate, STOP_WORDS
 from dataset_generator import SampleGenerator
-from helper import etime, read_file, read_web, get_words, get_biwords
+from helper import etime, read_web, get_words, get_biwords
 
 """
     This script's aim is to find author name of any arbitrary article based on
@@ -30,47 +29,16 @@ from helper import etime, read_file, read_web, get_words, get_biwords
        overall text length is less than 15 words. Otherwise use original element's text <--- Should we stop here?
     2. if this is n-th text increase, and total length is more than on 40% comparing to
        previous result - stop and use previous plaintext as a context.
+
+    TODO: process meta tags
+    <meta content="Nischelle Turner, CNN" itemprop="author" name="author"/>
+    <meta name="author" content='Matt Asay' />
 """
 
 class AuthorDetector():
     def __init__(self, feature_extractor, algo_cls):
         self.feature_extractor = feature_extractor
         self.algo_cls = algo_cls
-
-    # <meta content="Nischelle Turner, CNN" itemprop="author" name="author"/>
-    # <meta name="author" content='Matt Asay' />
-
-    # def get_train_data(self):
-    #     X = []
-    #     y = []
-    #     urls = self.get_urls()
-    #
-    #     # work with particular url only
-    #     # global FILE_IDX
-    #     # FILE_IDX = 17
-    #     # urls = ['http://www.mtv.com/news/articles/1708070/arrested-development-season-four-netflix-buzz.jhtml']
-    #
-    #     for url in urls:
-    #         # calculate features, prepare for training/classification
-    #         candidates = self.get_candidates(url)
-    #
-    #         # transform dataset
-    #         for candidate in candidates:
-    #             X.append(candidate.get_features())
-    #             # determine whether this is a true author or not
-    #             attrs = candidate.el.attributes
-    #             is_target = 'author' in attrs and candidate.text_lower in attrs['author'].lower()
-    #             y.append(1 if is_target else 0)
-    #
-    #             # print candidate.text
-    #             if is_target:
-    #                 print 'Candidate found: %s' % candidate.text
-    #                 print candidate
-    #                 print
-    #             else:
-    #                 print candidate
-    #
-    #     return (array(X), array(y))
 
     def train(self, sampler):
         if sampler:
@@ -185,7 +153,6 @@ class FeatureExtractor(object):
         dom = DOM(html)
 
         # feature: text length
-
         # filter out long blocks of text
         candidates = []
         for tag in TAGS:
@@ -195,11 +162,6 @@ class FeatureExtractor(object):
                 idx = 0
                 words = get_words(el)
                 words = filter(lambda w: len(w) > 1, words)
-
-                # for word in words:
-                #     if word.lower() not in STOP_WORDS:
-                #         candidates.append(Candidate(el, dom, word, idx))
-                #     idx += 1
 
                 # looking for first+last name
                 idx = 0
