@@ -1,5 +1,6 @@
 import re
 from urlparse import urlparse
+from pattern.web import plaintext
 
 DEFAULT_URLS_PATH = './urls.txt'
 
@@ -7,11 +8,11 @@ class BaseAuthorExtractor():
     domain = ''
     selectors = []
 
-    def __init__(self, domain=None, selector=None):
+    def __init__(self, domain=None, selectors=None):
         if domain:
             self.domain = domain
-        if selector:
-            self.selectors = selector
+        if selectors:
+            self.selectors = selectors
 
     def get_parent(self, el):
         return el.parent
@@ -56,27 +57,49 @@ class TheAtlanticExtractor(BaseAuthorExtractor):
 
 class CnnExtractor(BaseAuthorExtractor):
     domain = 'www.cnn.com'
-    selectors = ['div.cnnByLine', 'div.cnnByLine>strong']
-    author_re = re.compile('by (?P<first_name>\w+\s\w+)( and (?P<second_name>[^,]+),)|,')
+    selectors = ['div.cnnByLine', 'div.cnnByline']
+    author_re = re.compile('by (?P<first_name>\w+\s\w+)\s?((and)|,)(\s(?P<second_name>[^,]+),)?')
 
     def get_parent(self, el):
-        return el.parent.parent
+        return el.parent
 
     def compare_text(self, el, text):
-        is_single = el.tagName == 'strong' and el.content.lower().strip() == text.lower()
+        if el('strong'):
+            el = el('strong')[0]
+        el_text = plaintext(el.content).lower().strip().replace(',', '')
+        is_single = el.tagName == 'strong' and el_text == text.lower()
 
         match = self.author_re.match(el.content.lower())
-        is_multiple = match and (match.group('first_name').strip() == text.lower() or
-            match.group('second_name').strip() == text.lower())
+        if not match:
+            return is_single
+        first_name = match.group('first_name') or ''
+        second_name = match.group('second_name') or ''
+        is_multiple = match and (first_name.strip() == text.lower() or
+            second_name.strip() == text.lower())
 
         return is_single or is_multiple
+
+    def is_author(self, url, el, text):
+        if urlparse(url).hostname != self.domain:
+            return False
+
+        def has_class(el, className):
+            className = className.lower()
+            if 'class' in el.attrs and (className == el.attrs['class'].lower()
+                                        or (className + ' ') in el.attrs['class'].lower()):
+                return True
+            return False
+
+        if has_class(el, 'cnnByLine') or has_class(self.get_parent(el), 'cnnByLine'):
+            return self.compare_text(el, text)
+        return False
 
 
 class SampleGenerator(object):
 
     AUTHOR_EXTRACTORS = [
-        BaseAuthorExtractor(domain='venturebeat.com', selector='a[rel=author]'),
-        BaseAuthorExtractor(domain='techcrunch.com', selector='a[rel=author]'),
+        BaseAuthorExtractor(domain='venturebeat.com', selectors=['a[rel=author]']),
+        BaseAuthorExtractor(domain='techcrunch.com', selectors=['a[rel=author]']),
         TheAtlanticExtractor(),
         UsaTodayExtractor(),
         CnnExtractor()

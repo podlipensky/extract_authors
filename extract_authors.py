@@ -1,11 +1,13 @@
 from optparse import OptionParser
 from pprint import pprint
-from pattern.web import DOM, Text
+import re
+from pattern.web import DOM, Text, plaintext
 from numpy import array, save, load
 from sklearn import linear_model, svm
 from sklearn.preprocessing import StandardScaler
 from candidate import TAGS, Candidate, STOP_WORDS
 from dataset_generator import SampleGenerator
+from decision_tree import DecisionTree
 from helper import etime, read_web, get_words, get_biwords
 
 """
@@ -39,8 +41,9 @@ class AuthorDetector():
     def __init__(self, feature_extractor, algo_cls):
         self.feature_extractor = feature_extractor
         self.algo_cls = algo_cls
+        self.classifier = algo_cls()
 
-    def train(self, sampler):
+    def train(self, sampler=None):
         if sampler:
             X = []
             y = []
@@ -71,19 +74,20 @@ class AuthorDetector():
                     X.extend(features)
                     y.extend(authors)
 
-            self.save((array(X), array(y)))
+            data = (array(X), array(y))
+            self.save(data)
         else:
             data = self.restore()
-        self.algo_cls().fit(*data)
+        self.classifier.fit(*data)
 
     def predict(self, url):
         # calculate features, prepare for training/classification
         candidates = self.get_candidates(url)
         X = []
         for candidate in candidates:
-            print candidate
+            # print candidate
             X.append(candidate.get_features())
-        y = self.algo_cls.clf.predict(X)
+        y = self.classifier.clf.predict(X)
         self.print_results(y, candidates)
 
     def print_results(self, y, candidates):
@@ -149,8 +153,33 @@ class FeatureExtractor(object):
     def __init__(self):
         pass
 
+    def get_title_index(self, dom, plain_text):
+        title_el = dom('title')
+        if title_el:
+            # get title text
+            title = plaintext(title_el[0].source)
+            # usually title in <title> tag is a little bit different from
+            # acutal article title - publishers tend to add website name or author name either to the
+            # end or to the beginning of the title, for example:
+            #
+            # Insurers: Despite deadline, Obamacare glitches persist - CNN.com
+            # India's Dating Sites Skip Straight to the Wedding - P. Nash Jenkins - The Atlantic
+            #
+            # But it will be separated by either : or -, so let's take substring
+            # two first such separators
+            title_parts = re.split('\:|\-', title)
+            # find title in tagless text
+            part_idx = 1 if len(title_parts) > 2 else 0
+            title_idx = plain_text.find(title_parts[part_idx].strip())
+            return title_idx
+        return -1
+
     def get_candidates(self, html):
         dom = DOM(html)
+        if not dom.body:
+            return []
+        plaint_text = plaintext(dom.body.source)
+        title_idx = self.get_title_index(dom, plaint_text)
 
         # feature: text length
         # filter out long blocks of text
@@ -162,7 +191,8 @@ class FeatureExtractor(object):
                 idx = 0
                 words = get_words(el)
                 words = filter(lambda w: len(w) > 1, words)
-
+                if 'class' in el.attrs and el.attrs['class'] == 'cnnByline':
+                    print el
                 # looking for first+last name
                 idx = 0
                 for text in get_biwords(filter(len, words)):
@@ -175,7 +205,7 @@ class FeatureExtractor(object):
                             break
 
                     if not has_stop_word:
-                        candidates.append(Candidate(el, dom, text, idx))
+                        candidates.append(Candidate(el, dom, text, idx, plaint_text, title_idx))
                     idx += 1
         return candidates
 
@@ -203,6 +233,8 @@ def get_algo_from_name(name):
         return LogisticRegression
     if (name_lower == 'svm'):
         return SVM
+    if (name_lower == 'decisiontree'):
+        return DecisionTree
 
 
 def __main__():
@@ -216,16 +248,19 @@ def __main__():
 
     options, arguments = parser.parse_args()
 
-    algo_cls = get_algo_from_name(options.algorithm) if options.algorithm else LogisticRegression
+    algo_cls = get_algo_from_name(options.algorithm) if options.algorithm else DecisionTree
     detector = AuthorDetector(FeatureExtractor(), algo_cls)
 
-    # options.train = True
+    options.train = True
     # options.url = 'http://venturebeat.com/2013/05/19/biolite-stoves/'
 
     if options.train:
-        sampler = SampleGenerator(urls_path='urls/cnn.com.txt')
-        detector.train(sampler)
+        # sampler = SampleGenerator(urls_path='urls/small.txt')
+        # detector.train(sampler)
+        detector.train()
+        detector.classifier.draw_tree(column_names=Candidate.get_labels())
     if options.url:
+        detector.train()  # restore last training data
         detector.predict(options.url)
 
 __main__()

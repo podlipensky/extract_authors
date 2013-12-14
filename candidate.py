@@ -41,10 +41,10 @@ class Candidate:
     all_capital = 0 # 0 or 1
     words_count = 0
     has_image_around = 0 # 0 or 1
-    header_dist = [] # distance to hx tag
+    header_dist = -1 # distance to title tag
 
 
-    def __init__(self, el, dom, text, idx):
+    def __init__(self, el, dom, text, idx, body_text, title_idx):
         self.dom = dom # reference to the dom instance
         self.el = el # reference to the Node instance the word(s) were found in
         self.text = text
@@ -52,9 +52,15 @@ class Candidate:
         self.words = text.split(' ')
         self.words = filter(lambda w: len(w) > 1, self.words)
         self.idx = idx # word index in the text (starts from 0)
+        self.body_text = body_text
+        self.title_idx = title_idx
 
     def get_features(self):
-        return self.author_attr + self.header_dist + [self.is_capitalized, self.all_capital, self.words_count] + self.words_before + self.words_after
+        return self.author_attr + [self.header_dist, self.is_capitalized, self.all_capital, self.words_count] + self.words_before + self.words_after
+
+    @classmethod
+    def get_labels(self):
+        return ATTR_NAMES + ['Distance to title', 'Is Capitalized', 'Are all Capital', 'Words Count'] + BEFORE + AFTER
 
     def __str__(self):
         words_before = [BEFORE[i] for i in range(len(BEFORE)) if self.words_before[i] > -1]
@@ -72,7 +78,6 @@ class Candidate:
                     indexes.append(ATTR_NAMES.index(attr))
         return indexes
 
-
     def get_author_attr(self):
         dist = [-1 for i in ATTR_NAMES]
         el = self.el
@@ -86,7 +91,6 @@ class Candidate:
             el = el.parent
         return dist
 
-
     def get_horizontal_loc(self, el):
         prev = el
         loc = 0
@@ -95,22 +99,13 @@ class Candidate:
             prev = prev.previous
         return loc
 
-
     def get_headers_dist(self, el):
-        loc = 0
-        parent = el
-        dist = [-1 for i in HEADER_RE]
-        depth = 6
-        while parent.parent is not None and depth > 0:
-            source = parent.source
-            for i in range(len(HEADER_RE)):
-                if dist[i] == -1 and HEADER_RE[i].search(source) is not None:
-                    dist[i] = loc
-            loc += 1
-            depth -= 1
-            parent = parent.parent
+        dist = -1 # distance to title
+        if self.title_idx > -1:
+            author_idx = self.body_text.find(self.text)
+            if author_idx > -1:
+                dist = abs(author_idx - self.title_idx)
         return dist
-
 
     # todo: replace with distance to h1 tag or header tag
     def get_location(self, el, text):
@@ -125,7 +120,6 @@ class Candidate:
             parent = parent.parent
         return loc
 
-
     def find_words_before(self, before):
         dist = [-1 for i in BEFORE]
         before_len = len(before)
@@ -135,7 +129,6 @@ class Candidate:
                 dist[BEFORE.index(word)] = before_len - i
         return dist
 
-
     def find_words_after(self, after):
         dist = [-1 for i in AFTER]
         for i in range(len(after)):
@@ -143,7 +136,6 @@ class Candidate:
             if word in AFTER:
                 dist[AFTER.index(word)] = i
         return dist
-
 
     def calculate_features(self):
         self.location = 0
