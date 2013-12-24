@@ -1,24 +1,41 @@
 import os
-from pattern.web import Text, plaintext, collapse_linebreaks, collapse_tabs, collapse_spaces, URL
+from pattern.web import plaintext, collapse_linebreaks, collapse_tabs, collapse_spaces, URL
 import re
 
+BEFORE = ['posted', 'by', 'author', 'and', '&', 'from']
+AFTER = ['on', 'updated', '&amp;', 'is', 'and']
+POINT_IN_TIME = ['hours', 'minutes', 'seconds']
+DAY = ['days', 'today', 'yesterday', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat',
+       'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+         'January', 'February', 'March', 'April', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+         #'author', 'writer', 'expert', 'columnist'
 
-def cleanup(str, remove_punctuation=True):
+TIME_RE = re.compile('\d{1,2}:\d{1,2}\s?[p|a]?\.?m?\.?\s', re.IGNORECASE)
+POINT_IN_TIME_RE = re.compile('\d{1,2}\s(' + '|'.join(POINT_IN_TIME) + ')[,\s]{0,2}', re.IGNORECASE)
+DATE_RE = re.compile('(' + '|'.join(MONTH) + ')[,\s]{0,2}(\d{1,2})?[,\s]{0,2}(\d{2,4})?\s', re.IGNORECASE)
+
+STOP_WORDS = ['a', 'the', 'article', 'in', 'or', 'to', 'this', 'that', 'those', 'these', 'are', 'who', 'which', 'why', 'when', 'what', 'of', '&lt;', '&gt;', ',', ':', '&nbsp;', '&amp;', 'us', 'with', 'for', 'get', 'with', '#', '%']
+STOP_WORDS += BEFORE + AFTER
+STOP_WORDS = set(STOP_WORDS)
+
+
+def cleanup(text, remove_punctuation=True):
     if remove_punctuation:
-        str = re.sub('[^A-Za-z0-9\s\n]+', '', str)
-    str = collapse_linebreaks(str, threshold=1).replace('\n', ' ')
-    str = collapse_tabs(str, indentation=False, replace=' ')
-    str = collapse_spaces(str, indentation=False, replace=' ')
-    return str.strip()
+        text = re.sub('[^A-Za-z0-9\s\n]+', '', text)
+    text = collapse_linebreaks(text, threshold=1).replace('\n', ' ')
+    text = collapse_tabs(text, indentation=False, replace=' ')
+    text = collapse_spaces(text, indentation=False, replace=' ')
+    return text.strip()
 
 
-def get_surroundings_with_radius(str, cut_radius):
-    if not str:
+def get_surroundings_with_radius(text, cut_radius):
+    if not text:
         return ''
-    str = str.split(' ')
-    str = filter(len, str)
-    str = cut_radius(str)
-    return ' '.join(str)
+    text = text.split(' ')
+    text = filter(len, text)
+    text = cut_radius(text)
+    return ' '.join(text)
 
 
 def get_words_count(text):
@@ -27,60 +44,48 @@ def get_words_count(text):
     return len(arr)
 
 
-def get_context(el, text):
+def get_words_before_after(norm_source, after, before, idx, text):
+    prefix = norm_source[:idx]
+    suffix = norm_source[idx + len(text):]
+    before = prefix.split(' ')
+    after = suffix.split(' ')
+    return after, before
+
+
+def get_around_words(el, text, count=10):
     if el is None:
         return []
 
     parent = el.parent
-    context = text
-    text_words = text.split(' ')
-    context_len = len(text_words) + .0
-    while parent is not None:
-        norm_source = cleanup(parent.source, False)
-        source = plaintext(norm_source, linebreaks=1).lower()
-        if context_len / len(source.split(' ')) < 0.7 and get_words_count(source) >= 20:
-            # extract string of total length 20 with center in position of text
-            # and maximum raidus of 10 words
-            source = cleanup(source)
-            if (' ' + text_words[0] + ' ') not in (' ' + source + ' '):
-                break
-            context = source.split(' ')
-            context = filter(lambda w: len(w) > 1, context)
-            # look for previous source in order to avoid finding another mention of the author
-            idx = context.index(text_words[0])
-            before = context[max(idx-10, 0):idx]
-            start_after = idx + len(text_words)
-            after = context[start_after : start_after + 20-len(before)]
-            context = '%s %s %s' % (' '.join(before), text, ' '.join(after))
+    before = []
+    after = []
+    max_depth = 10
+    source = ''
+    idx = -1
+    while parent is not None and max_depth:
+        source = plaintext(parent.source, linebreaks=1).lower().replace('\n', ' ')
+        idx = source.find(text)
+        after, before = get_words_before_after(source, after, before, idx, text)
+        if len(before) >= count and len(after) >= count:
             break
-        if context != source:
-            context = source.replace('\n', ' ')
         parent = parent.parent
-    context = context.lower()
-    # find the text
-    idx = context.find(text)
-    # split context
-    before = context[:idx-1].strip()
-    after = context[idx+len(text):].strip()
-    before = before.split(' ')
-    after = after.split(' ')
-    return before, after
+        max_depth -= 1
+    # substitute date and time with recognizable tokens
+    norm_source = re.sub(TIME_RE, 'TIME ', source)
+    norm_source = re.sub(POINT_IN_TIME_RE, 'TIME ', norm_source)
+    norm_source = re.sub(DATE_RE, 'DATE ', norm_source)
+    after, before = get_words_before_after(norm_source, after, before, idx, text)
+
+    return before[-count:], after[:count]
 
 
 def get_words(el):
     if el is None:
         return []
 
-    text = ''
-    # get text from the node itself
-    if issubclass(el.__class__, Text):
-        text = el.source
-    else: # get just text, ignore children's content
-        for child in el.children:
-            if issubclass(child.__class__, Text):
-                text += ' ' + child.source.strip()
-
+    text = plaintext(el.source)
     text = cleanup(text).split(' ')
+    text = [word for word in text if word.lower().strip() not in STOP_WORDS]
 
     return text
 
@@ -112,8 +117,8 @@ def read_file(filename):
 
 def read_web(url):
     html = ''
+    start = etime()
     try:
-        start = etime()
         uri = URL(url)
         html = uri.download(cached=True)
     except Exception, e:

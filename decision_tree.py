@@ -36,12 +36,12 @@ class DecisionTree:
         # the first group (true) or the second group (false)
         split_function = None
         if isinstance(value, int) or isinstance(value, float):
-            split_function = lambda row:row[column] >= value
+            split_function = lambda row: row[column] >= value
         else:
-            split_function = lambda row:row[column] == value
+            split_function = lambda row: row[column] == value
         # Divide the rows into two sets and return them
-        set1=[row for row in rows if split_function(row)]
-        set2=[row for row in rows if not split_function(row)]
+        set1 = [row for row in rows if split_function(row)]
+        set2 = [row for row in rows if not split_function(row)]
         return (set1, set2)
 
     # Create counts of possible results (the last column of
@@ -72,7 +72,7 @@ class DecisionTree:
     # Entropy is the sum of p(x)log(p(x)) across all
     # the different possible results
     def entropy(self, rows):
-        log2 = lambda x:log(x) / log(2)
+        log2 = lambda x: log(x) / log(2)
         results = self.unique_counts(rows)  # Now calculate the entropy ent = 0.0
         ent = 0.0
         for r in results.keys():
@@ -111,7 +111,7 @@ class DecisionTree:
                 (set1, set2) = self.divide_set(rows, col, value)
                 # Information gain
                 p = float(len(set1)) / len(rows)
-                gain = current_score - p*scoref(set1) - (1 - p)*scoref(set2)
+                gain = current_score - p * scoref(set1) - (1 - p) * scoref(set2)
                 if gain > best_gain and len(set1) > 0 and len(set2) > 0:
                     best_gain = gain
                     best_criteria = (col, value)
@@ -120,19 +120,19 @@ class DecisionTree:
         if best_gain > 0:
             trueBranch = self.build_tree(best_sets[0])
             falseBranch = self.build_tree(best_sets[1])
-            return DecisionNode(col = best_criteria[0], value = best_criteria[1],
-                            tb = trueBranch, fb = falseBranch)
-        return DecisionNode(results = self.unique_counts(rows))
+            return DecisionNode(col=best_criteria[0], value=best_criteria[1],
+                            tb=trueBranch, fb=falseBranch)
+        return DecisionNode(results=self.unique_counts(rows))
 
     def predict(self, X, node):
-        if node.results != None:
+        if node.results is not None:
             return node.results
         else:
             v = X[node.col]
             branch = None
             if isinstance(v, int) or isinstance(v, float):
-                if v >= node.value: branch=node.tb
-                else: branch=node.fb
+                if v >= node.value: branch = node.tb
+                else: branch = node.fb
             else:
                 if v == node.value: branch = node.tb
                 else: branch = node.fb
@@ -140,13 +140,13 @@ class DecisionTree:
 
     def prune(self, tree, mingain):
         # If the branches aren't leaves, then prune them
-        if tree.tb.results == None:
+        if tree.tb.results is None:
             self.prune(tree.tb, mingain)
-        if tree.fb.results == None:
+        if tree.fb.results is None:
             self.prune(tree.fb, mingain)
         # If both the subbranches are now leaves, see if they
         # should merged
-        if tree.tb.results != None and tree.fb.results != None:
+        if tree.tb.results is not None and tree.fb.results is not None:
             # Build a combined dataset
             tb, fb=[], []
             for v, c in tree.tb.results.items():
@@ -161,14 +161,14 @@ class DecisionTree:
                 tree.results = self.unique_counts(tb + fb)
 
     def getwidth(self, tree):
-        if tree.tb == None and tree.fb == None: return 1
+        if tree.tb is None and tree.fb is None: return 1
         return self.getwidth(tree.tb) + self.getwidth(tree.fb)
 
     def getdepth(self, tree):
-        if tree.tb == None and tree.fb == None: return 0
+        if tree.tb is None and tree.fb is None: return 0
         return max(self.getdepth(tree.tb), self.getdepth(tree.fb)) + 1
 
-    def draw_tree(self, column_names, jpeg = 'tree.jpg'):
+    def draw_tree(self, column_names, jpeg='tree.jpg'):
         w = self.getwidth(self.root)*100
         h = self.getdepth(self.root)*100 + 120
         img = Image.new('RGB', (w, h), (255, 255, 255))
@@ -177,7 +177,7 @@ class DecisionTree:
         img.save(jpeg, 'JPEG')
 
     def draw_node(self, draw, column_names, tree, x, y):
-        if tree.results == None:
+        if tree.results is None:
             # Get the width of each branch
             w1 = self.getwidth(tree.fb)*100
             w2 = self.getwidth(tree.tb)*100
@@ -185,7 +185,7 @@ class DecisionTree:
             left = x - (w1 + w2) / 2
             right = x + (w1 + w2) / 2
             # Draw the condition string
-            if tree.results == None:
+            if tree.results is None:
                  text = str(column_names[tree.col]) + ':' + str(tree.value)
             else:
                 text = str(tree.value)

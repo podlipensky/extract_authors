@@ -1,27 +1,21 @@
 # strings we're expecting to near author's name
-from pattern.web import plaintext
 import re
 
 # tags we're consider as a good home for an author
-from helper import get_context
+import sys
+from helper import get_around_words
 
 TAGS = ['a', 'span', 'div', 'h3', 'h4', 'b', 'strong', 'i', 'p', 'li']
-
-BEFORE = ['posted', 'by', 'author', 'and', '&', 'from']
-AFTER = ['on', 'today', 'yesterday' 'hours', 'minutes', 'posted', 'updated', #'is',
-         '&amp;', 'and', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat',
-         'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
-         'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-         'January', 'February', 'March', 'April', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-         #'author', 'writer', 'expert', 'columnist'
 
 # strings we're expecting in element's attributes
 ATTR_WORDS = ['author', 'name', 'person', 'byline'] #'writer',
 ATTR_NAMES = ['id', 'class', 'rel', 'href', 'itemprop', 'title', 'data-author']
 
-STOP_WORDS = ['a', 'the', 'article', 'in', 'or', 'to', 'this', 'that', 'those', 'these', 'are', 'who', 'which', 'why', 'when', 'what', 'of', '&lt;', '&gt;', ',', ':', '&nbsp;', '&amp;', 'us', 'with', 'for', 'get', 'with', '#', '%']
-STOP_WORDS += BEFORE + AFTER
-STOP_WORDS = set(STOP_WORDS)
+# all combinations (tuples) of pairs of ATTR_WORDS and ATTR_NAMES
+ATTRIBUTES = []
+for word in ATTR_WORDS:
+    for name in ATTR_NAMES:
+        ATTRIBUTES.append((name, word))
 
 HEADER_TAGS = ['h1', 'h2', 'h3', 'header']
 HEADER_RE = []
@@ -31,135 +25,71 @@ for tag in HEADER_TAGS:
 
 
 class Candidate:
-    text = '' # text we're considering as a author's name candidate
-    location = 0
-    tag_idx = 0
-    author_attr = [] # ith element contains distance to ATTR_NAMES[i]. 0 - means in the same element
-    words_before = [] # distance from candidate to i-th the word in BEFORE
-    words_after = []
-    is_capitalized = 0 # 0 or 1
-    all_capital = 0 # 0 or 1
-    words_count = 0
-    has_image_around = 0 # 0 or 1
-    header_dist = -1 # distance to title tag
-
-
-    def __init__(self, el, dom, text, idx, body_text, title_idx):
+    def __init__(self, el, dom, text, body_text, title_idx):
         self.dom = dom # reference to the dom instance
         self.el = el # reference to the Node instance the word(s) were found in
         self.text = text
         self.text_lower = text.lower()
         self.words = text.split(' ')
-        self.words = filter(lambda w: len(w) > 1, self.words)
-        self.idx = idx # word index in the text (starts from 0)
         self.body_text = body_text
         self.title_idx = title_idx
 
+        # initialize features
+        self.tag_name = ''  # containing element tag name
+        self.is_capitalized = 0  # is first word capitalized
+        self.all_capital = 0  # are all words capitalized
+        self.dist_title = -1  # distance to title text
+        self.attributes = []  # indicates that ith pair of attribute/value from ATTRIBUTES is present
+        self.has_date = 0  # indicates that there is some date nearby (radius 10 words)
+        self.has_time = 0  # indicates that there is some time nearby
+
     def get_features(self):
-        return self.author_attr + [self.header_dist, self.is_capitalized, self.all_capital, self.words_count] + self.words_before + self.words_after
+        return [self.has_date, self.has_time, self.is_capitalized, self.all_capital, self.dist_title, self.tag_name] + self.attributes
 
     @classmethod
-    def get_labels(self):
-        return ATTR_NAMES + ['Distance to title', 'Is Capitalized', 'Are all Capital', 'Words Count'] + BEFORE + AFTER
+    def get_labels(cls):
+        labels = []
+        labels.extend(['Has Date Around', 'Has Time Around', 'Is Capitalized', 'All Capitalized', 'Distance to Title', 'Tag Name'])
+        for attr in ATTRIBUTES:
+            labels.append('Attribute "%s" has value "%s"' % attr)
+        return labels
 
     def __str__(self):
-        words_before = [BEFORE[i] for i in range(len(BEFORE)) if self.words_before[i] > -1]
-        words_after = [AFTER[i] for i in range(len(AFTER)) if self.words_after[i] > -1]
-        attr = [ATTR_NAMES[i] for i in range(len(ATTR_NAMES)) if self.author_attr[i] > -1]
-        return 'Candidate: %s\n\tAuthor attr: %s\n\tHeader dist: %s\n\tWords before: %s\n\tWords after: %s\n' % \
-               (self.text, ', '.join(attr), self.header_dist, ', '.join(words_before), ', '.join(words_after))
+        nonempty = [pair for i, pair in enumerate(ATTRIBUTES) if self.attributes[i] == 1]
+        return 'Candidate: %s\n\tAuthor attr: %s\n\tTitle dist: %s\n\tHas date: %s\n\tHas time: %s\n' % \
+               (self.text, '\n'.join(['%s: %s' % (attr, value) for attr, value in nonempty]),
+                self.dist_title, self.has_date, self.has_time)
 
-    def element_has_author(self, el):
-        attributes = el.attributes
-        indexes = []
-        for attr in ATTR_NAMES:
-            for word in ATTR_WORDS:
-                if attr in attributes and attributes[attr].find(word) > -1:
-                    indexes.append(ATTR_NAMES.index(attr))
-        return indexes
+    def has_attribute_value(self, attr):
+        attr_name, attr_value = attr
+        attributes = self.el.attributes
+        return attr in attributes and attributes[attr].find(attr_value) > -1
 
-    def get_author_attr(self):
-        dist = [-1 for i in ATTR_NAMES]
-        el = self.el
-        depth = 0
-        while depth < 4 and el is not None:
-            indexes = self.element_has_author(el)
-            for idx in indexes:
-                if dist[idx] == -1:
-                    dist[idx] = depth
-            depth += 1
-            el = el.parent
-        return dist
-
-    def get_horizontal_loc(self, el):
-        prev = el
-        loc = 0
-        while prev.previous:
-            loc += 1
-            prev = prev.previous
-        return loc
-
-    def get_headers_dist(self, el):
-        dist = -1 # distance to title
-        if self.title_idx > -1:
-            author_idx = self.body_text.find(self.text)
-            if author_idx > -1:
-                dist = abs(author_idx - self.title_idx)
-        return dist
-
-    # todo: replace with distance to h1 tag or header tag
-    def get_location(self, el, text):
-        loc = 0
-        parent = el
-        text_len = len(text)
-        while parent.parent is not None:
-            source = plaintext(parent.source).strip()
-            if text_len / len(source.split(' ')) < 0.7:
-                break
-            loc += 1
-            parent = parent.parent
-        return loc
-
-    def find_words_before(self, before):
-        dist = [-1 for i in BEFORE]
-        before_len = len(before)
-        for i in range(before_len):
-            word = before[i]
-            if word in BEFORE:
-                dist[BEFORE.index(word)] = before_len - i
-        return dist
-
-    def find_words_after(self, after):
-        dist = [-1 for i in AFTER]
-        for i in range(len(after)):
-            word = after[i]
-            if word in AFTER:
-                dist[AFTER.index(word)] = i
+    def get_distance_to_title(self, el):
+        dist = sys.maxint # distance to title
+        author_idx = self.body_text.find(self.text)
+        if author_idx > -1:
+            for tidx in self.title_idx:
+                dist = min(dist, abs(author_idx - tidx))
         return dist
 
     def calculate_features(self):
-        self.location = 0
-        self.tag_idx = TAGS.index(self.el.tag.lower())
-        self.author_attr = self.get_author_attr()
-        self.words_count = len(self.words)
+        self.tag_name = self.el.tag.lower()
 
-        # check distance to Hx tags
-        self.header_dist = self.get_headers_dist(self.el)
+        self.dist_title = self.get_distance_to_title(self.el)
 
-        before, after = get_context(self.el, self.text_lower)
+        before, after = get_around_words(self.el, self.text_lower)
 
-        self.words_before = self.find_words_before(before)
-        self.words_after = self.find_words_after(after)
-
-        self.before = before
-        self.after = after
+        self.has_date = 1 if 'DATE' in before or 'DATE' in after else 0
+        self.has_time = 1 if 'TIME' in before or 'TIME' in after else 0
 
         self.is_capitalized = 1
         for word in self.words:
-            if word[0].isupper() and not word[1].isupper():
+            if word[0].isupper() and (len(word) == 1 or not word[1].isupper()):
                 continue
             else:
                 self.is_capitalized = 0
+
         # check if all letters are in uppercase
         self.all_capital = 1
         if self.is_capitalized == 0:
@@ -170,3 +100,8 @@ class Candidate:
                     if not c.isupper():
                         self.all_capital = 0
                         break
+
+        # check for presence of values in some attributes
+        for attr in ATTRIBUTES:
+            has_attr_value = self.has_attribute_value(attr)
+            self.attributes.append(1 if has_attr_value else 0)

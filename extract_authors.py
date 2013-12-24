@@ -1,14 +1,14 @@
+import numpy
+from numpy import array, save, load
 from optparse import OptionParser
 from pprint import pprint
-import re
-from pattern.web import DOM, Text, plaintext
-from numpy import array, save, load
 from sklearn import linear_model, svm
 from sklearn.preprocessing import StandardScaler
-from candidate import TAGS, Candidate, STOP_WORDS
+from candidate import Candidate
 from dataset_generator import SampleGenerator
 from decision_tree import DecisionTree
-from helper import etime, read_web, get_words, get_biwords
+from feature_extractor import FeatureExtractor
+from helper import etime, read_web
 
 """
     This script's aim is to find author name of any arbitrary article based on
@@ -67,7 +67,10 @@ class AuthorDetector():
 
                     if is_target:
                         print 'Candidate found: %s' % candidate.text
-                        print candidate
+                        try:
+                            print candidate
+                        except UnicodeEncodeError:
+                            pass
                         print
 
                 if is_author_found:
@@ -78,7 +81,11 @@ class AuthorDetector():
             self.save(data)
         else:
             data = self.restore()
+
+        start = etime()
         self.classifier.fit(*data)
+        end = etime()
+        print 'Train classifier %s' % str(end - start)
 
     def predict(self, url):
         # calculate features, prepare for training/classification
@@ -109,9 +116,6 @@ class AuthorDetector():
 
         start = etime()
 
-        if len(candidates) > 800:
-            candidates = candidates[:400] + candidates[-400:]
-
         for candidate in candidates:
             candidate.calculate_features()
 
@@ -126,9 +130,18 @@ class AuthorDetector():
         save('target', ya)
 
     def restore(self):
-        X = load('sample.npy')
+        X_str = load('sample.npy')
         y = load('target.npy')
-        return (X.astype(float), y.astype(float))
+        X = []
+        for i, row in enumerate(X_str):
+            t = []
+            for j, val in enumerate(row):
+                try:
+                    t.append(numpy.float32(val))
+                except ValueError:
+                    t.append(val)
+            X.append(t)
+        return (X, y.astype(float))
 
 
 class LogisticRegression():
@@ -144,87 +157,7 @@ class SVM():
     clf = svm.SVC(class_weight={1:3})
     def fit(self, X, y):
         self.clf.fit(X, y)
-        # pprint(self.clf.n_support_)
         return y
-
-
-class FeatureExtractor(object):
-
-    def __init__(self):
-        pass
-
-    def get_title_index(self, dom, plain_text):
-        title_el = dom('title')
-        if title_el:
-            # get title text
-            title = plaintext(title_el[0].source)
-            # usually title in <title> tag is a little bit different from
-            # acutal article title - publishers tend to add website name or author name either to the
-            # end or to the beginning of the title, for example:
-            #
-            # Insurers: Despite deadline, Obamacare glitches persist - CNN.com
-            # India's Dating Sites Skip Straight to the Wedding - P. Nash Jenkins - The Atlantic
-            #
-            # But it will be separated by either : or -, so let's take substring
-            # two first such separators
-            title_parts = re.split('\:|\-', title)
-            # find title in tagless text
-            part_idx = 1 if len(title_parts) > 2 else 0
-            title_idx = plain_text.find(title_parts[part_idx].strip())
-            return title_idx
-        return -1
-
-    def get_candidates(self, html):
-        dom = DOM(html)
-        if not dom.body:
-            return []
-        plaint_text = plaintext(dom.body.source)
-        title_idx = self.get_title_index(dom, plaint_text)
-
-        # feature: text length
-        # filter out long blocks of text
-        candidates = []
-        for tag in TAGS:
-            elements = self.get_elements_with_short_text(dom, tag)
-            for el in elements:
-                # looking for username
-                idx = 0
-                words = get_words(el)
-                words = filter(lambda w: len(w) > 1, words)
-                if 'class' in el.attrs and el.attrs['class'] == 'cnnByline':
-                    print el
-                # looking for first+last name
-                idx = 0
-                for text in get_biwords(filter(len, words)):
-                    # check if any of stop words appears in the text
-                    has_stop_word = False
-                    text_split = text.split(' ')
-                    for word in text_split:
-                        if word.lower().strip() in STOP_WORDS:
-                            has_stop_word = True
-                            break
-
-                    if not has_stop_word:
-                        candidates.append(Candidate(el, dom, text, idx, plaint_text, title_idx))
-                    idx += 1
-        return candidates
-
-    def get_elements_with_short_text(self, dom, tagName):
-        elements = []
-        for el in dom.by_tag(tagName):
-            text = ''
-            non_text_count = 0
-            for child in el.children:
-                if issubclass(child.__class__, Text):
-                    text += ' ' + child.source
-                else:
-                    non_text_count += 1
-            l = len(text.strip().split(' '))
-            # verify that we have at least single word, at most 8 words
-            # and that the string contains at least single letter
-            if l < 9 and l > 0 and any(c.isalpha() for c in text) and non_text_count < 3:
-                elements.append(el)
-        return elements
 
 
 def get_algo_from_name(name):
@@ -255,9 +188,10 @@ def __main__():
     # options.url = 'http://venturebeat.com/2013/05/19/biolite-stoves/'
 
     if options.train:
-        # sampler = SampleGenerator(urls_path='urls/small.txt')
-        # detector.train(sampler)
-        detector.train()
+        sampler = SampleGenerator(urls_path='urls/small.txt')
+        detector.train(sampler)
+        # train from saved results
+        # detector.train()
         detector.classifier.draw_tree(column_names=Candidate.get_labels())
     if options.url:
         detector.train()  # restore last training data
